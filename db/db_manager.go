@@ -2,18 +2,17 @@ package db
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/boltdb/bolt"
 	"os"
 )
 
-// implementation of DB using bolt DB
+// manages all operations against the Bolt DB
 type BoltDBManager struct {
 	path	string
 	boltDb	*bolt.DB
 }
 
-// given a DB, make sure it contains all of the basic data required
+// initialize the Bolt DB such that it contains all of the basic buckets required
 func (db *BoltDBManager) init() error {
 	if err := db.initUsers(); err != nil {
 		return err
@@ -135,7 +134,7 @@ func (db *BoltDBManager) Delete(elements ...BucketElement) error {
 			bucket := element.Bucket()
 			dbBucket := tx.Bucket(bucket)
 			if dbBucket == nil {
-				return fmt.Errorf("\"%s\" does not exist in %s", string(bucket), db.path)
+				return &ErrBucketNotFound{string(bucket)}
 			}
 			if err := dbBucket.Delete(element.Key()); err != nil {
 				return err

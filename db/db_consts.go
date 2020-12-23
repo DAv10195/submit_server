@@ -9,7 +9,7 @@ const (
 	// roles
 	Admin = "admin"
 
-	// main buckets
+	// bucket names
 	Users = "users"
 	Courses = "courses"
 )
