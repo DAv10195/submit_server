@@ -60,6 +60,8 @@ func (db *BoltDBManager) Load() error {
 	logger.Infof("Loading DB from %s...", db.path)
 	if _, err := os.Stat(db.path); os.IsNotExist(err) {
 		logger.Infof("DB doesn't exist in %s. Creating new one...", db.path)
+	} else {
+		logger.Fatalf("Error accessing existing DB in %s", db.path)
 	}
 	boltDb, err := bolt.Open(db.path, dbPerms, &bolt.Options{Timeout: dbOpenTimeout})
 	if err != nil {

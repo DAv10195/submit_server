@@ -10,14 +10,14 @@ import (
 
 func TestLoad(t *testing.T) {
 	dbManager := &BoltDBManager{filepath.Join(os.TempDir(), "test.db"), nil}
+	if err := dbManager.Load(); err != nil {
+		t.Fatal(err)
+	}
 	defer func() {
 		if err := os.Remove(dbManager.path); err != nil {
 			t.Fatal(err)
 		}
 	}()
-	if err := dbManager.Load(); err != nil {
-		t.Fatal(err)
-	}
 	adminFromDB := &User{Admin, "", "", nil, nil}
 	if err := dbManager.Get(adminFromDB); err != nil {
 		t.Fatal(err)
@@ -30,14 +30,14 @@ func TestLoad(t *testing.T) {
 
 func TestPutAndGet(t *testing.T) {
 	dbManager := &BoltDBManager{filepath.Join(os.TempDir(), "test.db"), nil}
+	if err := dbManager.Load(); err != nil {
+		t.Fatal(err)
+	}
 	defer func() {
 		if err := os.Remove(dbManager.path); err != nil {
 			t.Fatal(err)
 		}
 	}()
-	if err := dbManager.Load(); err != nil {
-		t.Fatal(err)
-	}
 	course := &Course{"89385", "CS Projects", util.NewStringSet(), util.NewStringSet()}
 	student1 := &User{"david", "david", "david@submit.com", util.NewStringSet(), util.NewStringSet()}
 	student2 := &User{"nikita", "nikita", "nikita@submit.com", util.NewStringSet(), util.NewStringSet()}
@@ -73,14 +73,14 @@ func TestPutAndGet(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	dbManager := &BoltDBManager{filepath.Join(os.TempDir(), "test.db"), nil}
+	if err := dbManager.Load(); err != nil {
+		t.Fatal(err)
+	}
 	defer func() {
 		if err := os.Remove(dbManager.path); err != nil {
 			t.Fatal(err)
 		}
 	}()
-	if err := dbManager.Load(); err != nil {
-		t.Fatal(err)
-	}
 	adminFromDB := &User{Admin, "", "", nil, nil}
 	if err := dbManager.Delete(adminFromDB); err != nil {
 
