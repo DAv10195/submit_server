@@ -1,4 +1,4 @@
-package stringset
+package containers
 
 // set of strings
 type StringSet struct {

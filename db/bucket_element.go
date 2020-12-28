@@ -24,12 +24,12 @@ type ABucketElement struct {
 
 func (e *ABucketElement) MarkInsert(user string) {
 	e.CreatedBy = user
-	e.CreatedOn = time.Now()
+	e.CreatedOn = time.Now().UTC()
 	e.UpdatedBy = e.CreatedBy
 	e.UpdatedOn = e.CreatedOn
 }
 
 func (e *ABucketElement) MarkUpdate(user string) {
 	e.UpdatedBy = user
-	e.UpdatedOn = time.Now()
+	e.UpdatedOn = time.Now().UTC()
 }

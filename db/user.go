@@ -1,15 +1,15 @@
 package db
 
-import "github.com/DAv10195/submit_server/util/stringset"
+import "github.com/DAv10195/submit_server/util/containers"
 
 // user struct
 type User struct {
 	ABucketElement
 	Name		string                  `json:"name"`
 	Password	string                  `json:"password"`
-	Email		string                 	`json:"email"`
-	Courses		*stringset.StringSet 	`json:"courses"`
-	Roles		*stringset.StringSet   	`json:"roles"`
+	Email		string                  `json:"email"`
+	Courses		*containers.StringSet 	`json:"courses"`
+	Roles		*containers.StringSet   `json:"roles"`
 }
 
 func (u *User) Key() []byte {
@@ -28,10 +28,10 @@ func GetDefaultAdmin() (*User, error) {
 		return nil, err
 	}
 	user := &User{
-		Name: Admin,
+		Name:     Admin,
 		Password: password,
-		Courses: stringset.NewStringSet(),
-		Roles: stringset.NewStringSet(),
+		Courses:  containers.NewStringSet(),
+		Roles:    containers.NewStringSet(),
 	}
 	user.Roles.Add(Admin, StandardUser)
 	return user, nil

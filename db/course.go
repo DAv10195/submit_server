@@ -1,16 +1,16 @@
 package db
 
 import (
-	"github.com/DAv10195/submit_server/util/stringset"
+	"github.com/DAv10195/submit_server/util/containers"
 )
 
 // course struct
 type Course struct {
 	ABucketElement
-	ID			string              	`json:"id"`
-	Name		string                	`json:"name"`
-	Students	*stringset.StringSet  	`json:"students"`
-	Staff		*stringset.StringSet 	`json:"staff"`
+	ID			string               	`json:"id"`
+	Name		string                 	`json:"name"`
+	Students	*containers.StringSet  	`json:"students"`
+	Staff		*containers.StringSet 	`json:"staff"`
 }
 
 func (c *Course) Key() []byte {
