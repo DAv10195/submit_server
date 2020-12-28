@@ -1,4 +1,4 @@
-package util
+package stringset
 
 // set of strings
 type StringSet struct {
