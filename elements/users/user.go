@@ -1,10 +1,13 @@
-package db
+package users
 
-import "github.com/DAv10195/submit_server/util/containers"
+import (
+	"github.com/DAv10195/submit_server/db"
+	"github.com/DAv10195/submit_server/util/containers"
+)
 
 // user struct
 type User struct {
-	ABucketElement
+	db.ABucketElement
 	Name		string                  `json:"name"`
 	Password	string                  `json:"password"`
 	Email		string                  `json:"email"`
@@ -20,12 +23,18 @@ func (u *User) Bucket() []byte {
 	return []byte(Users)
 }
 
-// return a default admin user for DB initialization purposes. This is the default user in the system which has the
-// admin role
-func GetDefaultAdmin() (*User, error) {
-	password, err := Encrypt(Admin)
+// check if the default admin user is present in the DB and add it if not
+func InitDefaultAdmin() error {
+	exists, err := db.KeyExistsInBucket([]byte(Users), []byte(Admin))
 	if err != nil {
-		return nil, err
+		return err
+	}
+	if exists {
+		return nil
+	}
+	password, err := db.Encrypt(Admin)
+	if err != nil {
+		return err
 	}
 	user := &User{
 		Name:     Admin,
@@ -34,5 +43,5 @@ func GetDefaultAdmin() (*User, error) {
 		Roles:    containers.NewStringSet(),
 	}
 	user.Roles.Add(Admin, StandardUser)
-	return user, nil
+	return db.Update(db.System, user)
 }

@@ -22,25 +22,18 @@ func verifyBuckets() error {
 
 func TestInit(t *testing.T) {
 	path := os.TempDir()
-	if err := initDB(path); err != nil {
+	if err := InitDB(path); err != nil {
 		t.Fatal(err)
 	}
 	defer func(){
-		if err := os.Remove(filepath.Join(path, dbFileName)); err != nil {
+		if err := os.Remove(filepath.Join(path, DatabaseFileName)); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.Remove(filepath.Join(path, dbEncryptionKeyFileName)); err != nil {
+		if err := os.Remove(filepath.Join(path, DatabaseEncryptionKeyFileName)); err != nil {
 			t.Fatal(err)
 		}
 	}()
 	if err := verifyBuckets(); err != nil {
 		t.Fatal(err)
-	}
-	exists, err := KeyExistsInBucket([]byte(Users), []byte(Admin))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !exists {
-		t.Fatalf("\"%s\" user should exist, but he doesn't", Admin)
 	}
 }

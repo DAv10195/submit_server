@@ -1,12 +1,13 @@
-package db
+package courses
 
 import (
+	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/util/containers"
 )
 
 // course struct
 type Course struct {
-	ABucketElement
+	db.ABucketElement
 	ID			string               	`json:"id"`
 	Name		string                 	`json:"name"`
 	Students	*containers.StringSet  	`json:"students"`

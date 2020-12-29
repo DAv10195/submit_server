@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 )
 
-var buckets = []string{Courses, Users, Assignments, Submissions, SubmissionResults}
+var buckets = []string{Courses, Users}
 
 var db *bolt.DB
 
-func initDB(path string) error {
-	if err := initDbEncryption(filepath.Join(path, dbEncryptionKeyFileName)); err != nil {
+func InitDB(path string) error {
+	if err := initDbEncryption(filepath.Join(path, DatabaseEncryptionKeyFileName)); err != nil {
 		return err
 	}
-	dbPath := filepath.Join(path, dbFileName)
+	dbPath := filepath.Join(path, DatabaseFileName)
 	logger.Infof("loading DB from %s ...", path)
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		logger.Infof("DB doesn't exist in %s. Creating new one...", path)
@@ -29,10 +29,6 @@ func initDB(path string) error {
 	}
 	db = boltDb
 	if err := initBuckets(); err != nil {
-		logger.WithError(err).Errorf("failed to initialize DB at %s", path)
-		return err
-	}
-	if err := initAdminUser(); err != nil {
 		logger.WithError(err).Errorf("failed to initialize DB at %s", path)
 		return err
 	}
@@ -51,20 +47,4 @@ func initBuckets() error {
 		}
 		return nil
 	})
-}
-
-func initAdminUser() error {
-	adminUser, err := GetDefaultAdmin()
-	if err != nil {
-		return err
-	}
-	logger.Debugf("validating existence of user \"%s\"", adminUser.Name)
-	exists, err := KeyExistsInBucket(adminUser.Bucket(), adminUser.Key())
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return Update(System, adminUser)
-	}
-	return nil
 }

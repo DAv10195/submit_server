@@ -1,6 +1,8 @@
+// facade for accessing the DB
 package db
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/boltdb/bolt"
 )
@@ -15,19 +17,25 @@ func Update(asUser string, elements ...IBucketElement) error {
 			bucket := element.Bucket()
 			dbBucket := tx.Bucket(bucket)
 			if dbBucket == nil {
-				return &ErrBucketNotFound{string(bucket)}
+				err := &ErrBucketNotFound{string(bucket)}
+				logger.WithError(err).Errorf("error updating \"%s\" bucket", string(bucket))
+				return err
 			}
 			key := element.Key()
 			if dbBucket.Get(key) == nil {
+				logger.Debugf("inserting element with key = \"%s\" into \"%s\" bucket", string(key), string(bucket))
 				element.MarkInsert(asUser)
 			} else {
+				logger.Debugf("updating element with key = \"%s\" in \"%s\" bucket", string(key), string(bucket))
 				element.MarkUpdate(asUser)
 			}
 			objectBytes, err := json.Marshal(element)
 			if err != nil {
+				logger.WithError(err).Errorf("error updating key = \"%s\" in \"%s\" bucket", string(key), string(bucket))
 				return err
 			}
 			if err := dbBucket.Put(key, objectBytes); err != nil {
+				logger.WithError(err).Errorf("error updating key = \"%s\" in \"%s\" bucket", string(key), string(bucket))
 				return err
 			}
 		}
@@ -45,9 +53,35 @@ func Delete(elements ...IBucketElement) error {
 			bucket := element.Bucket()
 			dbBucket := tx.Bucket(bucket)
 			if dbBucket == nil {
-				return &ErrBucketNotFound{string(bucket)}
+				err := &ErrBucketNotFound{string(bucket)}
+				logger.WithError(err).Errorf("error deleting elements from \"%s\" bucket", string(bucket))
+				return err
 			}
-			if err := dbBucket.Delete(element.Key()); err != nil {
+			key := element.Key()
+			if err := dbBucket.Delete(key); err != nil {
+				logger.WithError(err).Errorf("error deleting key = \"%s\" from \"%s\" bucket", string(key), string(bucket))
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// delete the given keys from the given bucket
+func DeleteKeysFromBucket(bucket []byte, keys ...[]byte) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	return db.Update(func (tx *bolt.Tx) error {
+		dbBucket := tx.Bucket(bucket)
+		if dbBucket == nil {
+			err := &ErrBucketNotFound{string(bucket)}
+			logger.WithError(err).Errorf("error deleting keys from \"%s\" bucket", string(bucket))
+			return err
+		}
+		for _, key := range keys {
+			if err := dbBucket.Delete(key); err != nil {
+				logger.WithError(err).Errorf("error deleting key = \"%s\" from \"%s\" bucket", string(key), string(bucket))
 				return err
 			}
 		}
@@ -61,7 +95,9 @@ func KeyExistsInBucket(bucket, key []byte) (bool, error) {
 	err := db.View(func (tx *bolt.Tx) error {
 		dbBucket := tx.Bucket(bucket)
 		if dbBucket == nil {
-			return &ErrBucketNotFound{string(bucket)}
+			err := &ErrBucketNotFound{string(bucket)}
+			logger.WithError(err).Errorf("error querying \"%s\" bucket", string(bucket))
+			return err
 		}
 		exists = dbBucket.Get(key) != nil
 		return nil
@@ -70,4 +106,51 @@ func KeyExistsInBucket(bucket, key []byte) (bool, error) {
 		return false, err
 	}
 	return exists, nil
+}
+
+// a function that accepts the bucket element key and data and processes it
+type BucketElementProcessingFunc func([]byte, []byte) error
+
+// given a bucket and a processing function, process all elements in that bucket
+func QueryBucket(bucket []byte, process BucketElementProcessingFunc) error {
+	return db.View(func (tx *bolt.Tx) error {
+		dbBucket := tx.Bucket(bucket)
+		if dbBucket == nil {
+			err := &ErrBucketNotFound{string(bucket)}
+			logger.WithError(err).Errorf("error querying \"%s\" bucket", string(bucket))
+			return err
+		}
+		dbCursor := dbBucket.Cursor()
+		for elementKey, elementBytes := dbCursor.First(); elementKey != nil; elementKey, elementBytes = dbCursor.Next() {
+			if err := process(elementKey, elementBytes); err != nil {
+				logger.WithError(err).Errorf("error querying \"%s\" bucket", string(bucket))
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// given a bucket and a key, return the bytes of the data assigned with that key
+func GetFromBucket(bucket, key []byte) ([]byte, error) {
+	var data bytes.Buffer
+	if err := db.View(func (tx *bolt.Tx) error {
+		dbBucket := tx.Bucket(bucket)
+		if dbBucket == nil {
+			err := &ErrBucketNotFound{string(bucket)}
+			logger.WithError(err).Errorf("error accessing \"%s\" bucket", string(bucket))
+			return err
+		}
+		bytesOfKey := dbBucket.Get(key)
+		if bytesOfKey == nil {
+			err := &ErrKeyNotFoundInBucket{string(bucket), string(key)}
+			logger.WithError(err).Errorf("error accessing \"%s\" key in \"%s\" bucket", string(key), string(bucket))
+			return err
+		}
+		data.Write(bytesOfKey)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return data.Bytes(), nil
 }
