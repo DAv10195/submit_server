@@ -7,7 +7,7 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-// update (or create, if they don't exist yet) the give elements in the DB
+// update (or create, if they don't exist yet) the given elements in the DB
 func Update(asUser string, elements ...IBucketElement) error {
 	if len(elements) == 0 {
 		return nil
@@ -108,7 +108,7 @@ func KeyExistsInBucket(bucket, key []byte) (bool, error) {
 	return exists, nil
 }
 
-// a function that accepts the bucket element key and data and processes it
+// a function that accepts the bucket element key and data and processes it using the implemented strategy
 type BucketElementProcessingFunc func([]byte, []byte) error
 
 // given a bucket and a processing function, process all elements in that bucket
@@ -147,7 +147,9 @@ func GetFromBucket(bucket, key []byte) ([]byte, error) {
 			logger.WithError(err).Errorf("error accessing \"%s\" key in \"%s\" bucket", string(key), string(bucket))
 			return err
 		}
-		data.Write(bytesOfKey)
+		if _, err := data.Write(bytesOfKey); err != nil {
+			return err
+		}
 		return nil
 	}); err != nil {
 		return nil, err

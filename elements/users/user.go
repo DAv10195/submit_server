@@ -20,12 +20,12 @@ func (u *User) Key() []byte {
 }
 
 func (u *User) Bucket() []byte {
-	return []byte(Users)
+	return []byte(db.Users)
 }
 
 // check if the default admin user is present in the DB and add it if not
 func InitDefaultAdmin() error {
-	exists, err := db.KeyExistsInBucket([]byte(Users), []byte(Admin))
+	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(Admin))
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,7 @@ package db
 
 import "time"
 
-// implementors of this interface specify to which Bucket they should be put and what should be their unique Key
+// implementors of this interface are elements that wish to be stored in a certain bucket
 type IBucketElement interface {
 	// get the key that should be associated with this element
 	Key() []byte

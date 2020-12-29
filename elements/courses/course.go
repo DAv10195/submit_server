@@ -19,5 +19,5 @@ func (c *Course) Key() []byte {
 }
 
 func (c *Course) Bucket() []byte {
-	return []byte(Courses)
+	return []byte(db.Courses)
 }

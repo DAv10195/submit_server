@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestInitDefaultAdmin(t *testing.T) {
+func TestAuthenticate(t *testing.T) {
 	path := os.TempDir()
 	if err := db.InitDB(path); err != nil {
 		t.Fatal(err)
@@ -23,11 +23,7 @@ func TestInitDefaultAdmin(t *testing.T) {
 	if err := InitDefaultAdmin(); err != nil {
 		t.Fatal(err)
 	}
-	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(Admin))
-	if err != nil {
+	if err := Authenticate(Admin, Admin); err != nil {
 		t.Fatal(err)
-	}
-	if !exists {
-		t.Fatalf("\"%s\" user should exist in \"%s\" bucket but it doesn't", Admin, db.Users)
 	}
 }
