@@ -13,4 +13,5 @@ const (
 	// bucket names
 	Users	 	= "users"
 	Courses 	= "courses"
+	Assignments = "assignments"
 )
