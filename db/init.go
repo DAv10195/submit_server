@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-var buckets = []string{Courses, Users, Assignments}
+var buckets = []string{Courses, Users, AssignmentInstances, AssignmentDefinitions, MessageBoxes, Messages, Tests, Appeals}
 
 var db *bolt.DB
 

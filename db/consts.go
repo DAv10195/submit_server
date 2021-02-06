@@ -10,8 +10,15 @@ const (
 
 	System = "system"
 
+	KeySeparator				= ":"
+
 	// bucket names
-	Users	 	= "users"
-	Courses 	= "courses"
-	Assignments = "assignments"
+	Users	 					= "users"
+	Courses 					= "courses"
+	AssignmentInstances 		= "assignment_instances"
+	AssignmentDefinitions		= "assignment_definitions"
+	MessageBoxes				= "message_boxes"
+	Messages					= "messages"
+	Tests						= "tests"
+	Appeals						= "appeals"
 )

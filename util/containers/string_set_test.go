@@ -1,6 +1,9 @@
 package containers
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestStringSet_Add(t *testing.T) {
 	set := NewStringSet()
@@ -46,5 +49,21 @@ func TestStringSet_Slice(t *testing.T) {
 		if v != true {
 			t.Fatalf("%s wasn't included in the slice generated from the set although it was in the set", k)
 		}
+	}
+}
+
+func TestStringSet_String(t *testing.T) {
+	david, nikita, azriel := "david", "nikita", "azriel"
+	set := NewStringSet()
+	set.Add(david, nikita, azriel)
+	setStr := set.String()
+	if !strings.Contains(setStr, david) {
+		t.Fatalf("%s doesn't contain %s", setStr, david)
+	}
+	if !strings.Contains(setStr, nikita) {
+		t.Fatalf("%s doesn't contain %s", setStr, nikita)
+	}
+	if !strings.Contains(setStr, azriel) {
+		t.Fatalf("%s doesn't contain %s", setStr, azriel)
 	}
 }

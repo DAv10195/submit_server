@@ -18,3 +18,12 @@ type ErrKeyNotFoundInBucket struct {
 func (e *ErrKeyNotFoundInBucket) Error() string {
 	return fmt.Sprintf("%s key not found in bucket %s", e.Key, e.Bucket)
 }
+
+type ErrKeyExistsInBucket struct {
+	Bucket 	string
+	Key 	string
+}
+
+func (e *ErrKeyExistsInBucket) Error() string {
+	return fmt.Sprintf("%s key already exists in bucket %s", e.Key, e.Bucket)
+}

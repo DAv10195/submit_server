@@ -3,22 +3,18 @@ package courses
 import (
 	"fmt"
 	"github.com/DAv10195/submit_server/db"
-	"github.com/DAv10195/submit_server/util/containers"
 )
 
-// course struct
+// course
 type Course struct {
 	db.ABucketElement
-	ID			string               	`json:"id"`
-	Semester	string					`json:"semester"`
-	Name		string                 	`json:"name"`
-	Students	*containers.StringSet  	`json:"students"`
-	Staff		*containers.StringSet 	`json:"staff"`
-	Assignments	*containers.StringSet	`json:"assignments"`
+	Number          		int						`json:"number"`
+	Year        			int                		`json:"year"`
+	Name            		string                	`json:"name"`
 }
 
 func (c *Course) Key() []byte {
-	return []byte(fmt.Sprintf("%s:%s", c.ID, c.Semester))
+	return []byte(fmt.Sprintf("%d%s%d", c.Number, db.KeySeparator, c.Year))
 }
 
 func (c *Course) Bucket() []byte {

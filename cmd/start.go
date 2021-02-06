@@ -4,7 +4,7 @@ import "github.com/spf13/cobra"
 
 var startCmd = &cobra.Command{
 	Use: "start",
-	Short: "start submit_server",
+	Short: "start submit server",
 	SilenceUsage: true,
 	SilenceErrors: true,
 	RunE: func (cmd *cobra.Command, args []string) error {

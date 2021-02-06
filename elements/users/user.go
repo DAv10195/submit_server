@@ -2,21 +2,26 @@ package users
 
 import (
 	"github.com/DAv10195/submit_server/db"
+	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/util/containers"
 )
 
-// user struct
+// user
 type User struct {
 	db.ABucketElement
-	Name		string                  `json:"name"`
-	Password	string                  `json:"password"`
-	Email		string                  `json:"email"`
-	Courses		*containers.StringSet 	`json:"courses"`
-	Roles		*containers.StringSet   `json:"roles"`
+	UserName       			string                	`json:"user_name"`
+	FirstName				string					`json:"first_name"`
+	LastName				string					`json:"last_name"`
+	Password   				string                	`json:"password"`
+	Email      				string                	`json:"email"`
+	MessageBox 				string                	`json:"message_box"`
+	Roles      				*containers.StringSet 	`json:"roles"`
+	CoursesAsStaff			*containers.StringSet 	`json:"courses_as_staff"`
+	CoursesAsStudent		*containers.StringSet	`json:"courses_as_student"`
 }
 
 func (u *User) Key() []byte {
-	return []byte(u.Name)
+	return []byte(u.UserName)
 }
 
 func (u *User) Bucket() []byte {
@@ -36,12 +41,13 @@ func InitDefaultAdmin() error {
 	if err != nil {
 		return err
 	}
+	messageBox := messages.NewMessageBox()
 	user := &User{
-		Name:     Admin,
+		UserName: Admin,
 		Password: password,
-		Courses:  containers.NewStringSet(),
-		Roles:    containers.NewStringSet(),
+		MessageBox: messageBox.ID,
+		Roles: containers.NewStringSet(),
 	}
-	user.Roles.Add(Admin, StandardUser)
-	return db.Update(db.System, user)
+	user.Roles.Add(Admin)
+	return db.Update(db.System, messageBox, user)
 }
