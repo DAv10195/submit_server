@@ -1,15 +1,22 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"context"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"strings"
+)
 
-var rootCmd = &cobra.Command{
-	Use:	"submit_server",
-	SilenceUsage: true,
-	SilenceErrors: true,
-}
-
-func Execute() {
-	if err := rootCmd.Execute(); err != nil {
-		logger.Error(err)
+func NewRootCmd(ctx context.Context, args []string) *cobra.Command {
+	rootCmd := &cobra.Command{
+		Use: "submit server",
+		Short: "submit server",
+		SilenceUsage: true,
+		SilenceErrors: true,
 	}
+	rootCmd.AddCommand(newStartCommand(ctx, args))
+	viper.SetEnvPrefix("submit")
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
+	return rootCmd
 }

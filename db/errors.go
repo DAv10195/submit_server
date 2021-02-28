@@ -7,7 +7,7 @@ type ErrBucketNotFound struct {
 }
 
 func (e *ErrBucketNotFound) Error() string {
-	return fmt.Sprintf("%s bucket not found", e.Bucket)
+	return fmt.Sprintf("\"%s\" bucket not found", e.Bucket)
 }
 
 type ErrKeyNotFoundInBucket struct {
@@ -16,7 +16,7 @@ type ErrKeyNotFoundInBucket struct {
 }
 
 func (e *ErrKeyNotFoundInBucket) Error() string {
-	return fmt.Sprintf("%s key not found in bucket %s", e.Key, e.Bucket)
+	return fmt.Sprintf("\"%s\" key not found in bucket \"%s\"", e.Key, e.Bucket)
 }
 
 type ErrKeyExistsInBucket struct {
@@ -25,5 +25,5 @@ type ErrKeyExistsInBucket struct {
 }
 
 func (e *ErrKeyExistsInBucket) Error() string {
-	return fmt.Sprintf("%s key already exists in bucket %s", e.Key, e.Bucket)
+	return fmt.Sprintf("\"%s\" key already exists in bucket \"%s\"", e.Key, e.Bucket)
 }

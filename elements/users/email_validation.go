@@ -7,10 +7,6 @@ import (
 	"net/http"
 )
 
-type realEmailResponse struct {
-	Status string `json:"status"`
-}
-
 // validate the given email using the awesome Real Email API
 func ValidateEmail(email string) error {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s?email=%s", emailValidationUrl, email), nil)
@@ -26,7 +22,9 @@ func ValidateEmail(email string) error {
 	if err != nil {
 		return err
 	}
-	var realEmailResp realEmailResponse
+	var realEmailResp struct {
+		Status string `json:"status"`
+	}
 	err = json.Unmarshal(body, &realEmailResp)
 	if err != nil {
 		return err

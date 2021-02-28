@@ -1,6 +1,7 @@
 package users
 
 import (
+	"encoding/json"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/util/containers"
@@ -47,7 +48,23 @@ func InitDefaultAdmin() error {
 		Password: password,
 		MessageBox: messageBox.ID,
 		Roles: containers.NewStringSet(),
+		CoursesAsStaff: containers.NewStringSet(),
+		CoursesAsStudent: containers.NewStringSet(),
 	}
 	user.Roles.Add(Admin)
 	return db.Update(db.System, messageBox, user)
+}
+
+// return the user represented by the given user name if that user exists
+func Get(userName string) (*User, error) {
+	userBytes, err := db.GetFromBucket([]byte(db.Users), []byte(userName))
+	if err != nil {
+		return nil, err
+	}
+	user := &User{}
+	if err = json.Unmarshal(userBytes, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

@@ -16,11 +16,13 @@ func InitDB(path string) error {
 	}
 	dbPath := filepath.Join(path, DatabaseFileName)
 	logger.Infof("loading DB from %s ...", path)
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		logger.Infof("DB doesn't exist in %s. Creating new one...", path)
-	} else {
-		logger.Error(err)
-		return err
+	if _, err := os.Stat(dbPath); err != nil {
+		if os.IsNotExist(err) {
+			logger.Infof("DB doesn't exist in %s. Creating new one...", path)
+		} else {
+			logger.WithError(err).Errorf("failed to initialize DB at %s", path)
+			return err
+		}
 	}
 	boltDb, err := bolt.Open(dbPath, dbPerms, &bolt.Options{Timeout: dbOpenTimeout})
 	if err != nil {

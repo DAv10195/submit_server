@@ -36,7 +36,7 @@ func (e *AesEncryption) Decrypt(encryptedText string) (string, error) {
 		return "", fmt.Errorf("error decrypting text: %v", err)
 	}
 	if len(decryptedText) < aes.BlockSize {
-		return "", fmt.Errorf("error decrypting text: number of bytes in the text given for decryption (%s) is less than the AES block size (%d)", encryptedText, aes.BlockSize)
+		return "", fmt.Errorf("error decrypting text: number of bytes in the text given for decryption (\"%s\") is less than the AES block size (%d)", encryptedText, aes.BlockSize)
 	}
 	iv, decryptedText := decryptedText[ : aes.BlockSize], decryptedText[aes.BlockSize : ]
 	cfb := cipher.NewCFBDecrypter(block, iv)
