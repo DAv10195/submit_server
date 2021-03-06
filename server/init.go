@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/DAv10195/submit_server/db"
+	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/mux"
 	"net/http"
 	"sync"
@@ -17,7 +19,27 @@ func InitServer(ctx context.Context, cfg *Config) (*http.Server, *sync.WaitGroup
 		startWorker(ctx, wg, jobChan, i)
 	}
 	authManager := authManager{}
-
+	authManager.authMap["/users"] = &pathDetails{
+		authFunc: func(r *http.Request, w http.ResponseWriter)bool{
+			requestUserName := mux.Vars(r)[userName]
+			user, err := users.Get(requestUserName)
+			if err != nil {
+				logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
+				status := http.StatusInternalServerError
+				if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+					status = http.StatusNotFound
+				}
+				http.Error(w, (&ErrorResponse{err.Error()}).String(), status)
+				return false
+			}
+			if requestUserName != r.Header.Get(Authorization) && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
+				logger.Errorf("access to \"%s\" denied for user \"%s\"", r.URL.Path, r.Header.Get(Authorization))
+				http.Error(w, (&ErrorResponse{accessDenied}).String(), http.StatusForbidden)
+				return false
+			}
+			return true
+		},
+	}
 	// configure base request router and content type middleware
 	baseRouter := mux.NewRouter()
 	baseRouter.Use(contentTypeMiddleware)
