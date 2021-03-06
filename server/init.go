@@ -17,7 +17,7 @@ func InitServer(cfg *Config) *http.Server {
 	baseRouter.Use(authenticationMiddleware)
 	authManager := authManager{}
 	authManager.authMap = make(map[string]*pathDetails)
-	authManager.authMap["/user"] = &pathDetails{
+	authManager.authMap[users.GetUser] = &pathDetails{
 		authFunc: func(r *http.Request, w http.ResponseWriter) bool {
 			requestUserName := mux.Vars(r)[userName]
 			user, err := users.Get(requestUserName)
@@ -38,7 +38,7 @@ func InitServer(cfg *Config) *http.Server {
 			return true
 		},
 	}
-	authManager.authMap["/users/"] = &pathDetails{
+	authManager.authMap[users.GetAllUsers] = &pathDetails{
 		authFunc: func(r *http.Request, w http.ResponseWriter) bool {
 			requestUserName := r.Header.Get(Authorization)
 			user, err := users.Get(requestUserName)

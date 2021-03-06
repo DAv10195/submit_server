@@ -26,7 +26,7 @@ func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler{
 		}
 		// if its not found in the map. try to find a handler using regex.
 		pathType := a.checkPathType(uri)
-		if pathType != ""  && a.authMap[pathType].authFunc(r,w){
+		if pathType != ""  && a.authMap[pathType].authFunc(r,w) {
 			next.ServeHTTP(w, r)
 			return
 		}
