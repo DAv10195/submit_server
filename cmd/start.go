@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 )
 
 func newStartCommand(ctx context.Context, args []string) *cobra.Command {
@@ -62,7 +63,7 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			cfg := &server.Config{}
 			cfg.Port = viper.GetInt(flagServerPort)
 			cfg.NumberOfServerGoroutines = viper.GetInt(flagNumWorkers)
-			srv, wg := server.InitServer(ctx, cfg)
+			srv := server.InitServer(cfg)
 			go func() {
 				if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 					logger.WithError(err).Error("submit server crashed")
@@ -70,7 +71,12 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			}()
 			logger.Info("server is running")
 			<- ctx.Done()
-			wg.Wait()
+			logger.Info("stopping server...")
+			ctx, timeout := context.WithTimeout(context.Background(), time.Minute)
+			defer timeout()
+			if err := srv.Shutdown(ctx); err != nil {
+				return err
+			}
 			return nil
 		},
 	}

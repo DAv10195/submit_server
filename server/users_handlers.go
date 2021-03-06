@@ -9,11 +9,9 @@ import (
 	"github.com/DAv10195/submit_server/util/containers"
 	"github.com/gorilla/mux"
 	"net/http"
-	"sync"
 )
 
-func handleGetUser(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup) {
-	defer wg.Done()
+func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	logger.Debugf("handling request: %v", r)
 	requestUserName := mux.Vars(r)[userName]
 	user, err := users.Get(requestUserName)
@@ -42,8 +40,7 @@ func handleGetUser(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup) {
 	}
 }
 
-func handleGetAllUsers(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup) {
-	defer wg.Done()
+func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 	logger.Debugf("handling request: %v", r)
 	requestUserName := r.Header.Get(Authorization)
 	user, err := users.Get(requestUserName)
@@ -83,8 +80,7 @@ func handleGetAllUsers(w http.ResponseWriter, r *http.Request, wg *sync.WaitGrou
 	}
 }
 
-func handleRegisterUser(w http.ResponseWriter, r *http.Request, wg *sync.WaitGroup) {
-	defer wg.Done()
+func handleRegisterUser(w http.ResponseWriter, r *http.Request) {
 	user := &users.User{}
 	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
 		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
@@ -153,9 +149,9 @@ func handleRegisterUser(w http.ResponseWriter, r *http.Request, wg *sync.WaitGro
 }
 
 // configure the users router
-func initUsersRouter(r *mux.Router, jobChan chan <- job) {
+func initUsersRouter(r *mux.Router) {
 	usersRouter := r.PathPrefix(fmt.Sprintf("/%s", db.Users)).Subrouter()
-	usersRouter.HandleFunc("/", handleRequestByWorkers(handleGetAllUsers, jobChan)).Methods(http.MethodGet)
-	usersRouter.HandleFunc(fmt.Sprintf("/%s", register), handleRequestByWorkers(handleRegisterUser, jobChan)).Methods(http.MethodPost)
-	usersRouter.HandleFunc(fmt.Sprintf("/{%s}", userName), handleRequestByWorkers(handleGetUser, jobChan)).Methods(http.MethodGet)
+	usersRouter.HandleFunc("/", handleGetAllUsers).Methods(http.MethodGet)
+	usersRouter.HandleFunc(fmt.Sprintf("/%s", register), handleRegisterUser).Methods(http.MethodPost)
+	usersRouter.HandleFunc(fmt.Sprintf("/{%s}", userName), handleGetUser).Methods(http.MethodGet)
 }
