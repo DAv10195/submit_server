@@ -1,6 +1,10 @@
 package cmd
 
 const (
+	submit					= "submit"
+	submitServer 			= "submit server"
+	start					= "start"
+
 	defaultConfigFileName	= "submit_server.yml"
 	yaml					= "yaml"
 	info					= "info"
@@ -12,7 +16,6 @@ const (
 	flagConfigFile        	= "config-file"
 	flagDbDir             	= "db-dir"
 	flagServerPort        	= "server-port"
-	flagNumWorkers        	= "num-of-server-workers"
 	flagLogLevel          	= "log-level"
 	flagLogFile           	= "log-file"
 	flagLogFileAndStdout  	= "log-file-and-stdout"

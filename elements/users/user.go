@@ -2,6 +2,7 @@ package users
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/util/containers"
@@ -67,4 +68,40 @@ func Get(userName string) (*User, error) {
 	}
 
 	return user, nil
+}
+
+// authenticate the user with the given password. Returns the authenticated user when the returned error is nil
+func Authenticate(user, password string) (*User, error) {
+	userStruct, err := Get(user)
+	if err != nil {
+		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+			return nil, &ErrAuthenticationFailure{user, fmt.Sprintf("user \"%s\" not found", user)}
+		}
+		return nil, err
+	}
+	userPassword, err := db.Decrypt(userStruct.Password)
+	if err != nil {
+		return nil, err
+	}
+	if password != userPassword {
+		return nil, &ErrAuthenticationFailure{user, "incorrect password"}
+	}
+	return userStruct, nil
+}
+
+func ValidateNew(user *User) error {
+	if user.UserName == "" {
+		return &ErrInsufficientData{"missing user name"}
+	}
+	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(user.UserName))
+	if err != nil {
+		return err
+	}
+	if exists {
+		return &db.ErrKeyExistsInBucket{Bucket: db.Users, Key: user.UserName}
+	}
+	if user.Password == "" {
+		return &ErrInsufficientData{"missing password"}
+	}
+	return nil
 }

@@ -12,146 +12,128 @@ import (
 )
 
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
-	logger.Debugf("handling request: %v", r)
-	requestUserName := mux.Vars(r)[userName]
-	user, err := users.Get(requestUserName)
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		status := http.StatusInternalServerError
-		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
-			status = http.StatusNotFound
+	user := r.Context().Value(authenticatedUser).(*users.User)
+	requestedUserName := mux.Vars(r)[userName]
+	isSelfRequest := requestedUserName == user.UserName
+	if !isSelfRequest && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
+		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
+		return
+	}
+	var requestedUser *users.User
+	if isSelfRequest {
+		requestedUser = user
+	} else {
+		var err error
+		requestedUser, err = users.Get(requestedUserName)
+		if err != nil {
+			if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+				writeErrResp(w, r, http.StatusNotFound, err)
+			} else {
+				writeErrResp(w, r, http.StatusInternalServerError, err)
+			}
+			return
 		}
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), status)
-		return
 	}
-	if requestUserName != r.Header.Get(Authorization) && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
-		logger.Errorf("access to \"%s\" denied for user \"%s\"", r.URL.Path, r.Header.Get(Authorization))
-		http.Error(w, (&ErrorResponse{accessDenied}).String(), http.StatusForbidden)
-		return
-	}
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
-		return
-	}
-	if _, err = w.Write(userBytes); err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-	}
+	writeElem(w, r, http.StatusOK, requestedUser)
 }
 
 func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
-	logger.Debugf("handling request: %v", r)
-	requestUserName := r.Header.Get(Authorization)
-	user, err := users.Get(requestUserName)
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
-		return
-	}
+	user := r.Context().Value(authenticatedUser).(*users.User)
 	if !user.Roles.Contains(users.Secretary) && !users.Roles.Contains(users.Admin) {
-		logger.Errorf("access to \"%s\" denied for user \"%s\"", r.URL.Path, r.Header.Get(Authorization))
-		http.Error(w, (&ErrorResponse{accessDenied}).String(), http.StatusForbidden)
+		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
 		return
 	}
-	var resp struct {
-		Users []*users.User `json:"users"`
-	}
+	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Users), func(_, elementBytes []byte) error {
 		user := &users.User{}
 		if err := json.Unmarshal(elementBytes, user); err != nil {
 			return err
 		}
-		resp.Users = append(resp.Users, user)
+		elements = append(elements, user)
 		return nil
 	}); err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
+		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
-		return
-	}
-	if _, err = w.Write(respBytes); err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-	}
+	writeElements(w, r, http.StatusOK, elements)
 }
 
-func handleRegisterUser(w http.ResponseWriter, r *http.Request) {
-	user := &users.User{}
-	if err := json.NewDecoder(r.Body).Decode(user); err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
+func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Users	[]*users.User	`json:"users"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	if user.UserName == "" {
-		err := fmt.Errorf("missing user name")
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusBadRequest)
+	var elementsToCreate []db.IBucketElement
+	for _, user := range body.Users {
+		if err := users.ValidateNew(user); err != nil {
+			_, ok1 := err.(*db.ErrKeyExistsInBucket)
+			_, ok2 := err.(*users.ErrInsufficientData)
+			if ok1 || ok2 {
+				writeErrResp(w, r, http.StatusBadRequest, err)
+			} else {
+				writeErrResp(w, r, http.StatusInternalServerError, err)
+			}
+			return
+		}
+		encryptedPassword, err := db.Encrypt(user.Password)
+		if err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		user.Password = encryptedPassword
+		user.Roles = containers.NewStringSet()
+		user.Roles.Add(users.StandardUser)
+		user.CoursesAsStaff = containers.NewStringSet()
+		user.CoursesAsStudent = containers.NewStringSet()
+		messageBox := messages.NewMessageBox()
+		user.MessageBox = messageBox.ID
+		elementsToCreate = append(elementsToCreate, messageBox, user)
+	}
+	if err := db.Update(db.System, elementsToCreate...); err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(user.UserName))
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
+	writeResponse(w, r, http.StatusOK, &Response{"users created successfully"})
+}
+
+func handleDelUser(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(authenticatedUser).(*users.User)
+	requestedUserName := mux.Vars(r)[userName]
+	isSelfRequest := requestedUserName == user.UserName
+	if !isSelfRequest && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
+		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
 		return
 	}
-	if exists {
-		logger.WithError(&db.ErrKeyExistsInBucket{Bucket: db.Users, Key: user.UserName}).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusBadRequest)
+	var requestedUser *users.User
+	if isSelfRequest {
+		requestedUser = user
+	} else {
+		var err error
+		requestedUser, err = users.Get(requestedUserName)
+		if err != nil {
+			if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+				writeErrResp(w, r, http.StatusNotFound, err)
+			} else {
+				writeErrResp(w, r, http.StatusInternalServerError, err)
+			}
+			return
+		}
+	}
+	if err := db.Delete(requestedUser); err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	if user.Password == "" {
-		err := fmt.Errorf("missing password")
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusBadRequest)
-		return
-	}
-	if err = users.ValidateEmail(user.Email); err != nil {
-		err := fmt.Errorf("missing password")
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusBadRequest)
-		return
-	}
-	encryptedPassword, err := db.Encrypt(user.Password)
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
-		return
-	}
-	user.Password = encryptedPassword
-	user.Roles = containers.NewStringSet()
-	user.Roles.Add(users.StandardUser)
-	user.CoursesAsStaff = containers.NewStringSet()
-	user.CoursesAsStudent = containers.NewStringSet()
-	messageBox := messages.NewMessageBox()
-	if err := db.Update(db.System, messageBox, user); err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
-		return
-	}
-	var resp struct {
-		Message	string	`json:"message"`
-	}
-	resp.Message = fmt.Sprintf("user \"%s\" created successfully", user.UserName)
-	respBytes, err := json.Marshal(resp)
-	if err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-		http.Error(w, (&ErrorResponse{err.Error()}).String(), http.StatusInternalServerError)
-		return
-	}
-	if _, err = w.Write(respBytes); err != nil {
-		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-	}
+	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("user \"%s\" deleted successfully", requestedUser.UserName)})
 }
 
 // configure the users router
 func initUsersRouter(r *mux.Router) {
 	usersRouter := r.PathPrefix(fmt.Sprintf("/%s", db.Users)).Subrouter()
 	usersRouter.HandleFunc("/", handleGetAllUsers).Methods(http.MethodGet)
-	usersRouter.HandleFunc(fmt.Sprintf("/%s", register), handleRegisterUser).Methods(http.MethodPost)
+	usersRouter.HandleFunc("/", handleRegisterUsers).Methods(http.MethodPost)
 	usersRouter.HandleFunc(fmt.Sprintf("/{%s}", userName), handleGetUser).Methods(http.MethodGet)
+	usersRouter.HandleFunc(fmt.Sprintf("/{%s}", userName), handleDelUser).Methods(http.MethodDelete)
 }

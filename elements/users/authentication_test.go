@@ -23,7 +23,7 @@ func TestAuthenticate(t *testing.T) {
 	if err := InitDefaultAdmin(); err != nil {
 		t.Fatal(err)
 	}
-	if err := Authenticate(Admin, Admin); err != nil {
+	if _, err := Authenticate(Admin, Admin); err != nil {
 		t.Fatal(err)
 	}
 }

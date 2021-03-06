@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/DAv10195/submit_server/server"
+	"github.com/DAv10195/submit_server/util/path"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -14,14 +16,15 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
 func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	var setupErr error
 	startCmd := &cobra.Command{
-		Use: "start",
-		Short: "start submit server",
+		Use: start,
+		Short: fmt.Sprintf("%s %s", start, submitServer),
 		SilenceUsage: true,
 		SilenceErrors: true,
 		RunE: func (cmd *cobra.Command, args []string) error {
@@ -62,11 +65,10 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			}
 			cfg := &server.Config{}
 			cfg.Port = viper.GetInt(flagServerPort)
-			cfg.NumberOfServerGoroutines = viper.GetInt(flagNumWorkers)
 			srv := server.InitServer(cfg)
 			go func() {
 				if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-					logger.WithError(err).Error("submit server crashed")
+					logger.WithError(err).Fatal("submit server crashed")
 				}
 			}()
 			logger.Info("server is running")
@@ -80,13 +82,13 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			return nil
 		},
 	}
-	configFlagSet := pflag.NewFlagSet("submit", pflag.ContinueOnError)
+	configFlagSet := pflag.NewFlagSet(submit, pflag.ContinueOnError)
 	_ = configFlagSet.StringP(flagConfigFile, "c", "", "path to submit server config file")
 	configFlagSet.SetOutput(ioutil.Discard)
 	_ = configFlagSet.Parse(args[1:])
 	configFilePath, _ := configFlagSet.GetString(flagConfigFile)
 	if configFilePath == "" {
-		configFilePath = getDefaultConfigFilePath()
+		configFilePath = filepath.Join(path.GetDefaultConfigFilePath(), defaultConfigFileName)
 	}
 	viper.SetConfigType(yaml)
 	viper.SetConfigFile(configFilePath)
@@ -95,9 +97,8 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	viper.SetDefault(flagLogFileMaxAge, defMaxLogFileAge)
 	viper.SetDefault(flagLogFileMaxBackups, defMaxLogFileBackups)
 	viper.SetDefault(flagLogLevel, info)
-	viper.SetDefault(flagNumWorkers, server.DefNumberOfServerGoroutines)
 	viper.SetDefault(flagServerPort, server.DefPort)
-	viper.SetDefault(flagDbDir, getDefaultDbDirPath())
+	viper.SetDefault(flagDbDir, path.GetDefaultDbDirPath())
 	startCmd.Flags().AddFlagSet(configFlagSet)
 	startCmd.Flags().Int(flagLogFileMaxBackups, viper.GetInt(flagLogFileMaxBackups), "maximum number of log file rotations")
 	startCmd.Flags().Int(flagLogFileMaxSize, viper.GetInt(flagLogFileMaxSize), "maximum size of the log file before it's rotated")
@@ -107,7 +108,6 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	startCmd.Flags().String(flagLogFile, viper.GetString(flagLogFile), "log to file, specify the file location")
 	startCmd.Flags().String(flagDbDir, viper.GetString(flagDbDir), "db directory of the submit server")
 	startCmd.Flags().Int(flagServerPort, viper.GetInt(flagServerPort), "port the submit server should listen on")
-	startCmd.Flags().Int(flagNumWorkers, viper.GetInt(flagNumWorkers), "number of worker goroutines to be started by the submit server")
 	if err := viper.ReadInConfig(); err != nil && !os.IsNotExist(err) {
 		setupErr = err
 	}

@@ -9,13 +9,13 @@ import (
 
 func NewRootCmd(ctx context.Context, args []string) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use: "submit server",
-		Short: "submit server",
+		Use: submitServer,
+		Short: submitServer,
 		SilenceUsage: true,
 		SilenceErrors: true,
 	}
 	rootCmd.AddCommand(newStartCommand(ctx, args))
-	viper.SetEnvPrefix("submit")
+	viper.SetEnvPrefix(submit)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
 	return rootCmd

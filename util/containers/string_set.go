@@ -7,19 +7,19 @@ import (
 
 // set of strings
 type StringSet struct {
-	Elements	map[string]int	`json:"elements"`
+	Elements	map[string]struct{}	`json:"elements"`
 }
 
 // returns a new set of strings
 func NewStringSet() *StringSet {
-	return &StringSet{make(map[string]int)}
+	return &StringSet{make(map[string]struct{})}
 }
 
 // add the given elements to the set if not they are not present in it before
 func (s *StringSet) Add(elements ...string) {
 	for _, element := range elements {
 		if _, found := s.Elements[element]; !found {
-			s.Elements[element] = 1
+			s.Elements[element] = struct{}{}
 		}
 	}
 }
