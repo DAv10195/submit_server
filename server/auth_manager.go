@@ -1,47 +1,46 @@
 package server
 
 import (
+	"github.com/DAv10195/submit_server/elements/users"
 	"net/http"
 	"regexp"
 )
 
-type pathDetails struct {
-	authFunc func(r *http.Request, w http.ResponseWriter)bool
+
+
+type authorizationFunc func(*users.User) bool
+
+type regexpHandler struct {
+	regexp	*regexp.Regexp
+	invoke 	authorizationFunc
+}
+
+type regexpHandlerRegistry struct {
+	regExpHandlers	[]*regexpHandler
 }
 
 type authManager struct {
-	authMap map[string]*pathDetails
+	authMap map[string]authorizationFunc
+	regexpHandlerRegistry
 }
 
 func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler{
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		uri := r.RequestURI
-		// try to get the handler with the uri
-		uriHandler := a.authMap[uri]
-		// if its found in the map.
-		if uriHandler != nil && uriHandler.authFunc(r,w) {
-			// if uri is  in the map. check the function.
-			next.ServeHTTP(w, r)
+		path := r.URL.Path
+		user := r.Context().Value(authenticatedUser).(*users.User)
+		// try to get the handler with the path
+		handler := a.authMap[path]
+		// if path is  in the map. check the function.
+		if handler != nil && !handler(user) {
+			writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
 			return
 		}
-		// if its not found in the map. try to find a handler using regex.
-		pathType := a.checkPathType(uri)
-		if pathType != ""  && a.authMap[pathType].authFunc(r,w) {
-			next.ServeHTTP(w, r)
-			return
+		for _, rHandler := range a.regExpHandlers {
+			if rHandler.regexp.MatchString(path) && !rHandler.invoke(user) {
+				writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
+				return
+			}
 		}
-		//return status 403 - unauthorized if handler is not found.
-		status := http.StatusForbidden
-		writeStrErrResp(w,r,status,"access forbidden")
-		return
+		next.ServeHTTP(w, r)
 	})
-}
-
-func (a * authManager) checkPathType(uri string) string{
-	// analyze the path and return the string of the request group.
-	matchUser, _ := regexp.MatchString("users/.", uri)
-	if matchUser{
-		return "/user"
-	}
-	return ""
 }

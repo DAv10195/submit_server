@@ -130,7 +130,7 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // configure the users router
-func initUsersRouter(r *mux.Router) {
+func initUsersRouter(r *mux.Router, manager *authManager) {
 	usersRouter := r.PathPrefix(fmt.Sprintf("/%s", db.Users)).Subrouter()
 	usersRouter.HandleFunc("/", handleGetAllUsers).Methods(http.MethodGet)
 	usersRouter.HandleFunc("/", handleRegisterUsers).Methods(http.MethodPost)
