@@ -16,10 +16,13 @@ func InitServer(ctx context.Context, cfg *Config) (*http.Server, *sync.WaitGroup
 	for i := 1; i <= cfg.NumberOfServerGoroutines; i++ {
 		startWorker(ctx, wg, jobChan, i)
 	}
+	authManager := authManager{}
+
 	// configure base request router and content type middleware
 	baseRouter := mux.NewRouter()
 	baseRouter.Use(contentTypeMiddleware)
 	baseRouter.Use(authenticationMiddleware)
+	baseRouter.Use(authManager.authorizationMiddleware)
 	initUsersRouter(baseRouter, jobChan)
 	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
