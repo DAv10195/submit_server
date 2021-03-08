@@ -12,7 +12,9 @@ func InitServer(cfg *Config) *http.Server {
 	baseRouter := mux.NewRouter()
 	baseRouter.Use(contentTypeMiddleware)
 	baseRouter.Use(authenticationMiddleware)
-	initUsersRouter(baseRouter)
+	am := &authManager{authMap: make(map[string]authorizationFunc)}
+	baseRouter.Use(am.authorizationMiddleware)
+	initUsersRouter(baseRouter, am)
 	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      baseRouter,
