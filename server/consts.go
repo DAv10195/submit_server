@@ -13,7 +13,4 @@ const (
 	authenticatedUser		= "authenticated_user"
 
 	serverTimeout			= 15 * time.Second
-
-	GetUser    		= "/user"
-	GetAllUsers	 	= "/users/"
 )
