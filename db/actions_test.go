@@ -93,7 +93,7 @@ func TestUpdateAndDelete(t *testing.T) {
 	}
 }
 
-func TestQueryGet(t *testing.T) {
+func TestQueryAndGet(t *testing.T) {
 	dbPath, err := setDbWithMockBucket()
 	if err != nil {
 		t.Fatal(err)

@@ -50,3 +50,19 @@ func initBuckets() error {
 		return nil
 	})
 }
+
+// initializes a DB for testing and returns a cleanup function
+func InitDbForTest() func() {
+	path := os.TempDir()
+	if err := InitDB(path); err != nil {
+		panic(err)
+	}
+	return func() {
+		if err := os.Remove(filepath.Join(path, DatabaseFileName)); err != nil {
+			panic(err)
+		}
+		if err := os.Remove(filepath.Join(path, DatabaseEncryptionKeyFileName)); err != nil {
+			panic(err)
+		}
+	}
+}

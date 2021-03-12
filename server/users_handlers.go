@@ -129,11 +129,46 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("user \"%s\" deleted successfully", requestedUser.UserName)})
 }
 
+func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	user := r.Context().Value(authenticatedUser).(*users.User)
+	requestedUserName := mux.Vars(r)[userName]
+	isSelfRequest := requestedUserName == user.UserName
+	if !isSelfRequest && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
+		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
+		return
+	}
+	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(requestedUserName))
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if !exists {
+		writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("user named %s doesn't exist", requestedUserName))
+		return
+	}
+	updatedUser := &users.User{}
+	if err := json.NewDecoder(r.Body).Decode(updatedUser); err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, err)
+		return
+	}
+	if requestedUserName != updatedUser.UserName {
+		writeStrErrResp(w, r, http.StatusBadRequest, "updating user name is forbidden")
+		return
+	}
+	if err := db.Update(user.UserName, updatedUser); err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("user \"%s\" updated successfully", requestedUserName)})
+}
+
 // configure the users router
 func initUsersRouter(r *mux.Router, manager *authManager) {
 	usersRouter := r.PathPrefix(fmt.Sprintf("/%s", db.Users)).Subrouter()
 	usersRouter.HandleFunc("/", handleGetAllUsers).Methods(http.MethodGet)
 	usersRouter.HandleFunc("/", handleRegisterUsers).Methods(http.MethodPost)
-	usersRouter.HandleFunc(fmt.Sprintf("/{%s}", userName), handleGetUser).Methods(http.MethodGet)
-	usersRouter.HandleFunc(fmt.Sprintf("/{%s}", userName), handleDelUser).Methods(http.MethodDelete)
+	specificUserPath := fmt.Sprintf("/{%s}", userName)
+	usersRouter.HandleFunc(specificUserPath, handleGetUser).Methods(http.MethodGet)
+	usersRouter.HandleFunc(specificUserPath, handleDelUser).Methods(http.MethodDelete)
+	usersRouter.HandleFunc(specificUserPath, handleUpdateUser).Methods(http.MethodPut)
 }

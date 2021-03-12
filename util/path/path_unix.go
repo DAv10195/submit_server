@@ -2,7 +2,7 @@
 
 package path
 
-func GetDefaultConfigFilePath() string {
+func GetDefaultConfigDirPath() string {
 	return "/etc/submit-server/"
 }
 
