@@ -2,9 +2,7 @@ package server
 
 import (
 	"github.com/DAv10195/submit_server/db"
-	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/elements/users"
-	"github.com/DAv10195/submit_server/util/containers"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -77,8 +75,8 @@ func TestAuthenticationMiddleware(t *testing.T) {
 }
 
 func TestAuthorizationMiddleware(t *testing.T){
-	cleanup := db.InitDbForTest()
-	defer cleanup()
+	_ = db.InitDbForTest()
+	//defer cleanup()
 	am := InitAuthManager()
 	initTestAuthManager(am)
 	if err := users.InitDefaultAdmin(); err != nil {
@@ -114,29 +112,20 @@ func TestAuthorizationMiddleware(t *testing.T){
 		t.Fatalf("expected status %d but got %d", http.StatusOK, writer.Code)
 	}
 	// register a new user and try to access the content protected by auth manager.
-	messageBox := messages.NewMessageBox()
-	encryptedPassword, err := db.Encrypt("nikita")
+
+	builder := users.UserBuilder{}
+	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
+		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita").
+		WithRoles(users.Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
+	userNikita, err := builder.Build()
 	if err != nil {
-		t.Fatalf("failed to encrypr the password")
-	}
-	userNikita := &users.User{
-		UserName: "nikita",
-		Password: encryptedPassword,
-		MessageBox: "messageBox",
-		Roles: containers.NewStringSet(),
-		CoursesAsStaff: containers.NewStringSet(),
-		CoursesAsStudent: containers.NewStringSet(),
-	}
-	userNikita.Roles.Add(users.Admin)
-	err = db.Update(db.System, messageBox, userNikita)
-	if err != nil {
-		t.Fatalf("error updating db : %v", err)
+		t.Fatalf("failed to build test user")
 	}
 	request, err = http.NewRequest("", "/", nil)
 	if err != nil {
 		t.Fatalf("error creating http request: %v", err)
 	}
-	request.SetBasicAuth("nikita", "nikita")
+	request.SetBasicAuth(userNikita.UserName, "nikita")
 	writer = httptest.NewRecorder()
 	router.ServeHTTP(writer, request)
 	if writer.Code != http.StatusForbidden {
@@ -146,7 +135,7 @@ func TestAuthorizationMiddleware(t *testing.T){
 	if err != nil {
 		t.Fatalf("error creating http request: %v", err)
 	}
-	request.SetBasicAuth("nikita", "nikita")
+	request.SetBasicAuth(userNikita.UserName, "nikita")
 	writer = httptest.NewRecorder()
 	router.ServeHTTP(writer, request)
 	if writer.Code != http.StatusForbidden {

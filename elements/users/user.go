@@ -105,3 +105,74 @@ func ValidateNew(user *User) error {
 	}
 	return nil
 }
+
+type UserBuilder struct {
+	UserName       			string
+	FirstName				string
+	LastName				string
+	Password   				string
+	Email      				string
+	MessageBox 				string
+	Roles      				*containers.StringSet
+	CoursesAsStaff			*containers.StringSet
+	CoursesAsStudent		*containers.StringSet
+}
+
+func (b *UserBuilder) WithUserName(userName string) *UserBuilder{
+	b.UserName = userName
+	return b
+}
+func (b *UserBuilder) WithFirstName(firstName string) *UserBuilder{
+	b.FirstName = firstName
+	return b
+}
+func (b *UserBuilder) WithPassword(password string) *UserBuilder{
+	b.Password = password
+	return b
+}
+func (b *UserBuilder) WithLastName(lastName string) *UserBuilder{
+	b.LastName = lastName
+	return b
+}
+func (b *UserBuilder) WithEmail(email string) *UserBuilder{
+	b.Email = email
+	return b
+}
+func (b *UserBuilder) WithCoursesAsStaff(CoursesAsStaff ...string)*UserBuilder{
+	b.CoursesAsStaff = containers.NewStringSet()
+	b.CoursesAsStaff.Add(CoursesAsStaff...)
+	return b
+}
+func (b *UserBuilder) WithCoursesAsStudent(CoursesAsStudent ...string)*UserBuilder{
+	b.CoursesAsStudent = containers.NewStringSet()
+	b.CoursesAsStudent.Add(CoursesAsStudent...)
+	return b
+}
+func (b *UserBuilder) WithRoles(roles ...string)*UserBuilder{
+	b.Roles = containers.NewStringSet()
+	b.Roles.Add(roles...)
+	return b
+}
+
+func (b *UserBuilder) Build() (*User, error){
+	encryptedPassword, err := db.Encrypt(b.Password)
+	if err != nil {
+		return nil, err
+	}
+	messageBox := messages.NewMessageBox()
+	userToCreate := &User{
+		UserName: b.UserName,
+		Password: encryptedPassword,
+		MessageBox: messageBox.ID,
+		Roles: b.Roles,
+		CoursesAsStaff: b.CoursesAsStaff,
+		CoursesAsStudent: b.CoursesAsStudent,
+	}
+	err = db.Update(db.System, messageBox, userToCreate)
+	if err != nil {
+		return nil, err
+	}
+	return userToCreate, nil
+}
+
+
