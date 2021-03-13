@@ -77,7 +77,7 @@ func TestAuthenticationMiddleware(t *testing.T) {
 func TestAuthorizationMiddleware(t *testing.T){
 	cleanup := db.InitDbForTest()
 	defer cleanup()
-	am := InitAuthManager()
+	am := NewAuthManager()
 	initTestAuthManager(am)
 	if err := users.InitDefaultAdmin(); err != nil {
 		t.Fatalf("error initializng default admin user: %v", err)

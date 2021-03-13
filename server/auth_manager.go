@@ -18,7 +18,7 @@ type authManager struct {
 	regExpHandlers	[]*regexpHandler
 }
 
-func InitAuthManager () *authManager{
+func NewAuthManager() *authManager{
 	am := &authManager{}
 	am.authMap = make(map[string]authorizationFunc)
 	return am

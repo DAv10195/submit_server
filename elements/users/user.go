@@ -2,6 +2,7 @@ package users
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
@@ -112,10 +113,13 @@ type UserBuilder struct {
 	LastName				string
 	Password   				string
 	Email      				string
-	MessageBox 				string
 	Roles      				*containers.StringSet
 	CoursesAsStaff			*containers.StringSet
 	CoursesAsStudent		*containers.StringSet
+}
+
+func NewUserBuilder() *UserBuilder{
+	return &UserBuilder{}
 }
 
 func (b *UserBuilder) WithUserName(userName string) *UserBuilder{
@@ -167,6 +171,25 @@ func (b *UserBuilder) Build() (*User, error){
 		Roles: b.Roles,
 		CoursesAsStaff: b.CoursesAsStaff,
 		CoursesAsStudent: b.CoursesAsStudent,
+	}
+	decryptedPassword, err := db.Decrypt(userToCreate.Password)
+	if err != nil {
+		return nil,err
+	}
+	exist, err := db.KeyExistsInBucket(userToCreate.Bucket(), userToCreate.Key())
+	if err != nil {
+		return nil, err
+	}
+	if exist{
+		return nil,errors.New("user already exist in bucket")
+	}
+	if userToCreate.UserName == "" || userToCreate.Roles == nil || userToCreate.Roles.NumberOfElements() == 0 || decryptedPassword == ""{
+		return nil, errors.New("error creating user from builder")
+	}
+	for _,r := range userToCreate.Roles.Slice(){
+		if !Roles.Contains(r){
+			return nil, err
+		}
 	}
 	err = db.Update(db.System, messageBox, userToCreate)
 	if err != nil {
