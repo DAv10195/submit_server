@@ -75,8 +75,8 @@ func TestAuthenticationMiddleware(t *testing.T) {
 }
 
 func TestAuthorizationMiddleware(t *testing.T){
-	_ = db.InitDbForTest()
-	//defer cleanup()
+	cleanup := db.InitDbForTest()
+	defer cleanup()
 	am := InitAuthManager()
 	initTestAuthManager(am)
 	if err := users.InitDefaultAdmin(); err != nil {
