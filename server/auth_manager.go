@@ -6,8 +6,6 @@ import (
 	"regexp"
 )
 
-
-
 type authorizationFunc func(*users.User) bool
 
 type regexpHandler struct {
@@ -23,6 +21,18 @@ type authManager struct {
 	authMap map[string]authorizationFunc
 	regexpHandlerRegistry
 }
+
+func (a *authManager) addPathToMap(path string, authFunc authorizationFunc) {
+	a.authMap[path] = authFunc
+}
+
+func (a *authManager) addRegex(regex *regexp.Regexp, authFunc authorizationFunc) {
+	a.regexpHandlerRegistry.regExpHandlers = append(a.regexpHandlerRegistry.regExpHandlers, &regexpHandler {
+		regexp: regex,
+		invoke: authFunc,
+	})
+}
+
 
 func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler{
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
