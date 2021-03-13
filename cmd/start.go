@@ -88,7 +88,7 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	_ = configFlagSet.Parse(args[1:])
 	configFilePath, _ := configFlagSet.GetString(flagConfigFile)
 	if configFilePath == "" {
-		configFilePath = filepath.Join(path.GetDefaultConfigFilePath(), defaultConfigFileName)
+		configFilePath = filepath.Join(path.GetDefaultConfigDirPath(), defaultConfigFileName)
 	}
 	viper.SetConfigType(yaml)
 	viper.SetConfigFile(configFilePath)
