@@ -77,10 +77,9 @@ func TestAuthenticationMiddleware(t *testing.T) {
 }
 
 func TestAuthorizationMiddleware(t *testing.T){
-	_ = db.InitDbForTest()
-	//defer cleanup()
-	am := &authManager{}
-	am.InitAuthManager()
+	cleanup := db.InitDbForTest()
+	defer cleanup()
+	am := InitAuthManager()
 	initTestAuthManager(am)
 	if err := users.InitDefaultAdmin(); err != nil {
 		t.Fatalf("error initializng default admin user: %v", err)
@@ -116,17 +115,20 @@ func TestAuthorizationMiddleware(t *testing.T){
 	}
 	// register a new user and try to access the content protected by auth manager.
 	messageBox := messages.NewMessageBox()
-	encryptedPassword, _ := db.Encrypt("nikita")
-	userNikita := users.User{
+	encryptedPassword, err := db.Encrypt("nikita")
+	if err != nil {
+		t.Fatalf("failed to encrypr the password")
+	}
+	userNikita := &users.User{
 		UserName: "nikita",
 		Password: encryptedPassword,
 		MessageBox: "messageBox",
 		Roles: containers.NewStringSet(),
-		CoursesAsStaff: nil,
-		CoursesAsStudent: nil,
+		CoursesAsStaff: containers.NewStringSet(),
+		CoursesAsStudent: containers.NewStringSet(),
 	}
 	userNikita.Roles.Add(users.Admin)
-	err = db.Update(db.System, messageBox, &userNikita)
+	err = db.Update(db.System, messageBox, userNikita)
 	if err != nil {
 		t.Fatalf("error updating db : %v", err)
 	}

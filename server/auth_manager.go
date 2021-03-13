@@ -18,8 +18,10 @@ type authManager struct {
 	regExpHandlers	[]*regexpHandler
 }
 
-func (a *authManager) InitAuthManager(){
-	a.authMap = make(map[string]authorizationFunc)
+func InitAuthManager () *authManager{
+	am := &authManager{}
+	am.authMap = make(map[string]authorizationFunc)
+	return am
 }
 
 
@@ -45,11 +47,11 @@ func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (a *authManager) addPathToMap(path string, authFunc func(user *users.User) bool){
+func (a *authManager) addPathToMap(path string, authFunc authorizationFunc){
 	a.authMap[path] = authFunc
 }
 
-func (a *authManager) addRegex(regex *regexp.Regexp, authFunc func(user *users.User) bool) {
+func (a *authManager) addRegex(regex *regexp.Regexp, authFunc authorizationFunc) {
 	a.regExpHandlers = append(a.regExpHandlers, &regexpHandler{
 		regex,
 		authFunc,
