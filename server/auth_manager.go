@@ -39,3 +39,15 @@ func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+func (a *authManager) addPathToMap(path string, authFunc func(user *users.User) bool){
+	a.authMap[path] = authFunc
+}
+
+func (a *authManager) addRegex(regex *regexp.Regexp, authFunc func(user *users.User) bool) {
+	a.regExpHandlers = append(a.regExpHandlers, &regexpHandler{
+		regex,
+		authFunc,
+	})
+}
+
