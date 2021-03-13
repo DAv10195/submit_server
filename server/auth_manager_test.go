@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/users"
-	//"github.com/DAv10195/submit_server/util/containers"
 	"github.com/gorilla/mux"
 	"net/http"
 	"os"
@@ -52,62 +51,84 @@ func testAddRegex() {
 
 
 func positiveTest(t *testing.T){
+	//init the server and the db.
 	server = initServer()
+	go server.ListenAndServe()
 	path := os.TempDir()
 	if err := db.InitDB(path); err != nil {
 		t.Fatal(err)
 	}
+	// using the admin user , lets set a path and a authFunc.
 	testAddPathToMap()
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/users/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.SetBasicAuth("admin", "admin")
+	resp, err2 := http.DefaultClient.Do(req)
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+	if resp.StatusCode != http.StatusOK{
+		t.Fatal("test failed.")
+	}
+	// using the admin , lets set a regex and a authFunc.
 	testAddRegex()
+	req, err = http.NewRequest(http.MethodGet, "http://localhost:8080/users/admin", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.SetBasicAuth("admin", "admin")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK{
+		t.Fatal("test failed.")
+	}
 
-	resp, err := http.Get("http://localhost:8080/users/")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatal(err)
-	}
-	resp, err = http.Get("http://localhost:8080/users/admin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatal(err)
-	}
-}
-
-func negativeTest(t *testing.T){
-	server = initServer()
-	path := os.TempDir()
-	if err := db.InitDB(path); err != nil {
-		t.Fatal(err)
-	}
-	testAddPathToMap()
-	testAddRegex()
-
-	resp, err := http.Get("http://localhost:8080/users/")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatal(err)
-	}
-	resp, err = http.Get("http://localhost:8080/users/admin")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		t.Fatal(err)
-	}
-	//req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/", nil)
-	//req.SetBasicAuth("user", "password")
-	//
-	//resp, _ = http.DefaultClient.Do(req)
 	//respBytes, _ := ioutil.ReadAll(resp.Body)
 	//var bla interface{}
 	//_ := json.Unmarshal(respBytes, bla)
 }
 
+func negativeTest(t *testing.T){
+	//init the server and the db.
+	server = initServer()
+	go server.ListenAndServe()
+	path := os.TempDir()
+	if err := db.InitDB(path); err != nil {
+		t.Fatal(err)
+	}
+	//register new user with all permissions. but the username is not admin.
+
+	testAddPathToMap()
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/users/", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.SetBasicAuth("nikita", "nikita")
+	resp, err2 := http.DefaultClient.Do(req)
+	if err2 != nil {
+		t.Fatal(err2)
+	}
+	testAddRegex()
+	if resp.StatusCode != http.StatusForbidden{
+		t.Fatal("test failed.")
+	}
+	req, err = http.NewRequest(http.MethodGet, "http://localhost:8080/users/admin", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.SetBasicAuth("nikita", "admin")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusForbidden{
+		t.Fatal("test failed.")
+	}
+}
 
 
 func TestInit(t *testing.T) {

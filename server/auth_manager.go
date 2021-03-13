@@ -18,6 +18,11 @@ type authManager struct {
 	regExpHandlers	[]*regexpHandler
 }
 
+func (a *authManager) InitAuthManager(){
+	a.authMap = make(map[string]authorizationFunc)
+}
+
+
 func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
