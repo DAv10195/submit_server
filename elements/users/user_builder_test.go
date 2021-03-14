@@ -1,6 +1,7 @@
 package users
 
 import (
+	"errors"
 	"github.com/DAv10195/submit_server/db"
 	"testing"
 )
@@ -12,7 +13,7 @@ func createValidUser(t *testing.T){
 		WithRoles(Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
 	_,err := builder.Build()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatal(errors.New("error create valid user test"))
 	}
 }
 
@@ -23,7 +24,7 @@ func emptyUserName(t *testing.T){
 		WithRoles(Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
 	_,err := builder.Build()
 	if err == nil {
-		t.Fatal(err)
+		t.Fatal(errors.New("error emptyUserName test"))
 	}
 }
 
@@ -34,7 +35,7 @@ func emptyRoles(t *testing.T){
 		WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
 	_,err := builder.Build()
 	if err == nil {
-		t.Fatal(err)
+		t.Fatal(errors.New("error emptyRoles test"))
 	}
 }
 
@@ -45,13 +46,13 @@ func emptyPassword(t *testing.T){
 		WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
 	_,err := builder.Build()
 	if err == nil {
-		t.Fatal(err)
+		t.Fatal(errors.New("error emptyPassword test"))
 	}
 }
 
 func TestBuilder(t *testing.T){
-	cleanup := db.InitDbForTest()
-	defer cleanup()
+	_ = db.InitDbForTest()
+	//defer cleanup()
 	emptyPassword(t)
 	emptyRoles(t)
 	emptyUserName(t)

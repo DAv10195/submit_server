@@ -108,89 +108,91 @@ func ValidateNew(user *User) error {
 }
 
 type UserBuilder struct {
-	UserName       			string
-	FirstName				string
-	LastName				string
-	Password   				string
-	Email      				string
-	Roles      				*containers.StringSet
-	CoursesAsStaff			*containers.StringSet
-	CoursesAsStudent		*containers.StringSet
+	userName         string
+	firstName        string
+	lastName         string
+	password         string
+	email            string
+	roles            *containers.StringSet
+	coursesAsStaff   *containers.StringSet
+	coursesAsStudent *containers.StringSet
 }
 
 func NewUserBuilder() *UserBuilder{
-	return &UserBuilder{}
+	b := &UserBuilder{}
+	b.roles = containers.NewStringSet()
+	b.coursesAsStaff = containers.NewStringSet()
+	b.coursesAsStudent = containers.NewStringSet()
+	return b
 }
 
 func (b *UserBuilder) WithUserName(userName string) *UserBuilder{
-	b.UserName = userName
+	b.userName = userName
 	return b
 }
 func (b *UserBuilder) WithFirstName(firstName string) *UserBuilder{
-	b.FirstName = firstName
+	b.firstName = firstName
 	return b
 }
 func (b *UserBuilder) WithPassword(password string) *UserBuilder{
-	b.Password = password
+	b.password = password
 	return b
 }
 func (b *UserBuilder) WithLastName(lastName string) *UserBuilder{
-	b.LastName = lastName
+	b.lastName = lastName
 	return b
 }
 func (b *UserBuilder) WithEmail(email string) *UserBuilder{
-	b.Email = email
+	b.email = email
 	return b
 }
 func (b *UserBuilder) WithCoursesAsStaff(CoursesAsStaff ...string)*UserBuilder{
-	b.CoursesAsStaff = containers.NewStringSet()
-	b.CoursesAsStaff.Add(CoursesAsStaff...)
+	b.coursesAsStaff.Add(CoursesAsStaff...)
 	return b
 }
 func (b *UserBuilder) WithCoursesAsStudent(CoursesAsStudent ...string)*UserBuilder{
-	b.CoursesAsStudent = containers.NewStringSet()
-	b.CoursesAsStudent.Add(CoursesAsStudent...)
+	b.coursesAsStudent.Add(CoursesAsStudent...)
 	return b
 }
 func (b *UserBuilder) WithRoles(roles ...string)*UserBuilder{
-	b.Roles = containers.NewStringSet()
-	b.Roles.Add(roles...)
+	b.roles.Add(roles...)
 	return b
 }
 
 func (b *UserBuilder) Build() (*User, error){
-	encryptedPassword, err := db.Encrypt(b.Password)
+	encryptedPassword, err := db.Encrypt(b.password)
 	if err != nil {
 		return nil, err
 	}
 	messageBox := messages.NewMessageBox()
-	userToCreate := &User{
-		UserName: b.UserName,
-		Password: encryptedPassword,
-		MessageBox: messageBox.ID,
-		Roles: b.Roles,
-		CoursesAsStaff: b.CoursesAsStaff,
-		CoursesAsStudent: b.CoursesAsStudent,
-	}
-	decryptedPassword, err := db.Decrypt(userToCreate.Password)
+	decryptedPassword, err := db.Decrypt(encryptedPassword)
 	if err != nil {
 		return nil,err
 	}
-	exist, err := db.KeyExistsInBucket(userToCreate.Bucket(), userToCreate.Key())
+	if b.userName == "" || b.roles.NumberOfElements() == 0 || decryptedPassword == ""{
+		return nil, errors.New("error creating user from builder")
+	}
+	exist, err := db.KeyExistsInBucket([]byte(db.Users), []byte(b.userName))
 	if err != nil {
 		return nil, err
 	}
 	if exist{
 		return nil,errors.New("user already exist in bucket")
 	}
-	if userToCreate.UserName == "" || userToCreate.Roles == nil || userToCreate.Roles.NumberOfElements() == 0 || decryptedPassword == ""{
-		return nil, errors.New("error creating user from builder")
-	}
-	for _,r := range userToCreate.Roles.Slice(){
+	for _,r := range b.roles.Slice(){
 		if !Roles.Contains(r){
 			return nil, err
 		}
 	}
+	userToCreate := &User{
+		UserName: b.userName,
+		Password: encryptedPassword,
+		MessageBox: messageBox.ID,
+		Roles: b.roles,
+		CoursesAsStaff: b.coursesAsStaff,
+		CoursesAsStudent: b.coursesAsStudent,
+	}
+
 	err = db.Update(db.System, messageBox, userToCreate)
 	if err != nil {
 		return nil, err
