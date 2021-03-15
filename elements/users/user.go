@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
+	"github.com/DAv10195/submit_server/util"
 	"github.com/DAv10195/submit_server/util/containers"
 )
 
@@ -92,7 +93,7 @@ func Authenticate(user, password string) (*User, error) {
 
 func ValidateNew(user *User) error {
 	if user.UserName == "" {
-		return &ErrInsufficientData{"missing user name"}
+		return &util.ErrInsufficientData{Message: "missing user name"}
 	}
 	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(user.UserName))
 	if err != nil {
@@ -102,7 +103,7 @@ func ValidateNew(user *User) error {
 		return &db.ErrKeyExistsInBucket{Bucket: db.Users, Key: user.UserName}
 	}
 	if user.Password == "" {
-		return &ErrInsufficientData{"missing password"}
+		return &util.ErrInsufficientData{Message: "missing password"}
 	}
 	return nil
 }
@@ -116,41 +117,38 @@ type UserBuilder struct {
 	roles            *containers.StringSet
 	coursesAsStaff   *containers.StringSet
 	coursesAsStudent *containers.StringSet
+	asUser			 string
 }
 
-func NewUserBuilder() *UserBuilder{
-	b := &UserBuilder{}
-	b.roles = containers.NewStringSet()
-	b.coursesAsStaff = containers.NewStringSet()
-	b.coursesAsStudent = containers.NewStringSet()
-	return b
+func NewUserBuilder(asUser string) *UserBuilder{
+	return &UserBuilder{roles: containers.NewStringSet(), coursesAsStaff: containers.NewStringSet(), coursesAsStudent: containers.NewStringSet(), asUser: asUser}
 }
 
-func (b *UserBuilder) WithUserName(userName string) *UserBuilder{
+func (b *UserBuilder) WithUserName(userName string) *UserBuilder {
 	b.userName = userName
 	return b
 }
-func (b *UserBuilder) WithFirstName(firstName string) *UserBuilder{
+func (b *UserBuilder) WithFirstName(firstName string) *UserBuilder {
 	b.firstName = firstName
 	return b
 }
-func (b *UserBuilder) WithPassword(password string) *UserBuilder{
+func (b *UserBuilder) WithPassword(password string) *UserBuilder {
 	b.password = password
 	return b
 }
-func (b *UserBuilder) WithLastName(lastName string) *UserBuilder{
+func (b *UserBuilder) WithLastName(lastName string) *UserBuilder {
 	b.lastName = lastName
 	return b
 }
-func (b *UserBuilder) WithEmail(email string) *UserBuilder{
+func (b *UserBuilder) WithEmail(email string) *UserBuilder {
 	b.email = email
 	return b
 }
-func (b *UserBuilder) WithCoursesAsStaff(CoursesAsStaff ...string)*UserBuilder{
+func (b *UserBuilder) WithCoursesAsStaff(CoursesAsStaff ...string) *UserBuilder {
 	b.coursesAsStaff.Add(CoursesAsStaff...)
 	return b
 }
-func (b *UserBuilder) WithCoursesAsStudent(CoursesAsStudent ...string)*UserBuilder{
+func (b *UserBuilder) WithCoursesAsStudent(CoursesAsStudent ...string) *UserBuilder {
 	b.coursesAsStudent.Add(CoursesAsStudent...)
 	return b
 }
@@ -159,45 +157,59 @@ func (b *UserBuilder) WithRoles(roles ...string)*UserBuilder{
 	return b
 }
 
-func (b *UserBuilder) Build() (*User, error){
+func (b *UserBuilder) Build() (*User, error) {
+	if b.userName == "" {
+		return nil, &util.ErrInsufficientData{Message: "given user name can't be empty"}
+	}
+	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(b.userName))
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Users, Key: b.userName}
+	}
+	if b.password == "" {
+		return nil, &util.ErrInsufficientData{Message: "given password can't be empty"}
+	}
+	if b.roles.NumberOfElements() == 0 {
+		return nil, &util.ErrInsufficientData{Message: "user must have at least one role"}
+	}
+	for _, r := range b.roles.Slice() {
+		if !Roles.Contains(r) {
+			return nil, fmt.Errorf("invalid role: %s", r)
+		}
+	}
+	if containers.StringSetIntersection(b.coursesAsStudent, b.coursesAsStaff).NumberOfElements() > 0 {
+		return nil, errors.New("user can't be a staff member and a student in the same course")
+	}
+	allCoursesOfUser := containers.StringSetUnion(b.coursesAsStudent, b.coursesAsStaff)
+	for _, course := range allCoursesOfUser.Slice() {
+		exists, err := db.KeyExistsInBucket([]byte(db.Courses), []byte(course))
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, &db.ErrKeyNotFoundInBucket{Bucket: db.Courses, Key: course}
+		}
+	}
 	encryptedPassword, err := db.Encrypt(b.password)
 	if err != nil {
 		return nil, err
 	}
 	messageBox := messages.NewMessageBox()
-	decryptedPassword, err := db.Decrypt(encryptedPassword)
-	if err != nil {
-		return nil,err
-	}
-	if b.userName == "" || b.roles.NumberOfElements() == 0 || decryptedPassword == ""{
-		return nil, errors.New("error creating user from builder")
-	}
-	exist, err := db.KeyExistsInBucket([]byte(db.Users), []byte(b.userName))
-	if err != nil {
-		return nil, err
-	}
-	if exist{
-		return nil,errors.New("user already exist in bucket")
-	}
-	for _,r := range b.roles.Slice(){
-		if !Roles.Contains(r){
-			return nil, err
-		}
-	}
-	userToCreate := &User{
+	user := &User{
 		UserName: b.userName,
+		FirstName: b.firstName,
+		LastName: b.lastName,
 		Password: encryptedPassword,
+		Email: b.email,
 		MessageBox: messageBox.ID,
 		Roles: b.roles,
 		CoursesAsStaff: b.coursesAsStaff,
 		CoursesAsStudent: b.coursesAsStudent,
 	}
-
-	err = db.Update(db.System, messageBox, userToCreate)
-	if err != nil {
+	if err := db.Update(b.asUser, messageBox, user); err != nil {
 		return nil, err
 	}
-	return userToCreate, nil
+	return user, nil
 }
-
-

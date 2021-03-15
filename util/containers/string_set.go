@@ -56,3 +56,28 @@ func (s *StringSet) NumberOfElements() int {
 func (s *StringSet) String() string {
 	return fmt.Sprintf("{%s}", strings.Join(s.Slice(), ","))
 }
+
+func StringSetUnion(sets ...*StringSet) *StringSet {
+	unionSet := NewStringSet()
+	for _, set := range sets {
+		unionSet.Add(set.Slice()...)
+	}
+	return unionSet
+}
+
+func StringSetIntersection(sets ...*StringSet) *StringSet {
+	intersectionSet := NewStringSet()
+	if len(sets) > 0 {
+		baseSet, restOfSets := sets[0], sets[1 :]
+		for _, element := range baseSet.Slice() {
+			foundInOtherSets := true
+			for _, set := range restOfSets {
+				foundInOtherSets = set.Contains(element)
+			}
+			if foundInOtherSets {
+				intersectionSet.Add(element)
+			}
+		}
+	}
+	return intersectionSet
+}

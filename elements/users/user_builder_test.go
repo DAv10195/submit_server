@@ -2,59 +2,74 @@ package users
 
 import (
 	"errors"
+	"fmt"
 	"github.com/DAv10195/submit_server/db"
+	"github.com/DAv10195/submit_server/util"
 	"testing"
 )
 
-func createValidUser(t *testing.T){
-	builder := NewUserBuilder()
+func createValidUser() error {
+	builder := NewUserBuilder(db.System)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
 		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita").
-		WithRoles(Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
-	_,err := builder.Build()
+		WithRoles(Admin)
+	_, err := builder.Build()
 	if err != nil {
-		t.Fatal(errors.New("error create valid user test"))
+		return fmt.Errorf("error creating user with valid arguments: %v", err)
 	}
+	return nil
 }
 
-func emptyUserName(t *testing.T){
-	builder := NewUserBuilder()
+func emptyUserName() error {
+	builder := NewUserBuilder(db.System)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
 		WithLastName("kogan").WithPassword("nikita").
-		WithRoles(Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
-	_,err := builder.Build()
+		WithRoles(Admin)
+	_, err := builder.Build()
 	if err == nil {
-		t.Fatal(errors.New("error emptyUserName test"))
+		return errors.New("error not returned when building user with empty user name")
 	}
+	if _, ok := err.(*util.ErrInsufficientData); !ok {
+		return errors.New("returned error is not of type ErrInsufficientData")
+	}
+	return nil
 }
 
-func emptyRoles(t *testing.T){
-	builder := NewUserBuilder()
+func emptyRoles() error {
+	builder := NewUserBuilder(db.System)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
-		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita").
-		WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
-	_,err := builder.Build()
+		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita")
+	_, err := builder.Build()
 	if err == nil {
-		t.Fatal(errors.New("error emptyRoles test"))
+		return errors.New("error not returned when building user with no roles")
 	}
+	if _, ok := err.(*util.ErrInsufficientData); !ok {
+		return errors.New("returned error is not of type ErrInsufficientData")
+	}
+	return nil
 }
 
-func emptyPassword(t *testing.T){
-	builder := NewUserBuilder()
+func emptyPassword() error {
+	builder := NewUserBuilder(db.System)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
-		WithLastName("kogan").WithUserName("nikita").WithRoles(Admin).
-		WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
-	_,err := builder.Build()
+		WithLastName("kogan").WithUserName("nikita").WithRoles(Admin)
+	_, err := builder.Build()
 	if err == nil {
-		t.Fatal(errors.New("error emptyPassword test"))
+		return errors.New("error not returned when building user with empty password")
 	}
+	if _, ok := err.(*util.ErrInsufficientData); !ok {
+		return errors.New("returned error is not of type ErrInsufficientData")
+	}
+	return nil
 }
 
-func TestBuilder(t *testing.T){
-	_ = db.InitDbForTest()
-	//defer cleanup()
-	emptyPassword(t)
-	emptyRoles(t)
-	emptyUserName(t)
-	createValidUser(t)
+func TestBuilder(t *testing.T) {
+	cleanup := db.InitDbForTest()
+	defer cleanup()
+	testFuncs := []func() error{emptyPassword, emptyRoles, emptyUserName, createValidUser}
+	for _, testFunc := range testFuncs {
+		if err := testFunc(); err != nil {
+			t.Fatal(err)
+		}
+	}
 }

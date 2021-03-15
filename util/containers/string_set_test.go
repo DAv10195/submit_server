@@ -67,3 +67,30 @@ func TestStringSet_String(t *testing.T) {
 		t.Fatalf("%s doesn't contain %s", setStr, azriel)
 	}
 }
+
+func TestUnion(t *testing.T) {
+	a, b, c := "a", "b", "c"
+	setA, setB, setC := NewStringSet(), NewStringSet(), NewStringSet()
+	setA.Add(a)
+	setB.Add(b)
+	setC.Add(c)
+	unionSet := StringSetUnion(setA, setB, setC)
+	if !unionSet.Contains(a) || !unionSet.Contains(b) || !unionSet.Contains(c) {
+		t.Fatalf("union set doesn't contain all elements from the given sets")
+	}
+}
+
+func TestIntersection(t *testing.T) {
+	a := "a"
+	set1, set2, set3 := NewStringSet(), NewStringSet(), NewStringSet()
+	set1.Add(a, "1")
+	set2.Add(a, "2")
+	set3.Add(a, "3")
+	intersectionSet := StringSetIntersection(set1, set2, set3)
+	if intersectionSet.NumberOfElements() != 1 {
+		t.Fatal("intersection set contains no elements or more than 1 element")
+	}
+	if intersectionSet.Slice()[0] != a {
+		t.Fatalf("intersection contains the wrong element")
+	}
+}
