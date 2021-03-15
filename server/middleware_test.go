@@ -6,6 +6,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 )
 
@@ -71,4 +72,89 @@ func TestAuthenticationMiddleware(t *testing.T) {
 	if writer.Code != http.StatusOK {
 		t.Fatalf("expected status %d but got %d", http.StatusOK, writer.Code)
 	}
+}
+
+func TestAuthorizationMiddleware(t *testing.T){
+	cleanup := db.InitDbForTest()
+	defer cleanup()
+	am := NewAuthManager()
+	initTestAuthManager(am)
+	if err := users.InitDefaultAdmin(); err != nil {
+		t.Fatalf("error initializng default admin user: %v", err)
+	}
+	router := getRouterForMiddlewareTest()
+	router.Use(authenticationMiddleware)
+	router.Use(am.authorizationMiddleware)
+	router.HandleFunc("/regex/{suffix}", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte("\"message\": \"hello from /regex/")); err != nil {
+			panic(err)
+		}
+	})
+	// use admin user for positive test.
+	request, err := http.NewRequest("", "/", nil)
+	if err != nil {
+		t.Fatalf("error creating http request: %v", err)
+	}
+	request.SetBasicAuth(users.Admin, users.Admin)
+	writer := httptest.NewRecorder()
+	router.ServeHTTP(writer, request)
+	if writer.Code != http.StatusOK {
+		t.Fatalf("expected status %d but got %d", http.StatusOK, writer.Code)
+	}
+	request, err = http.NewRequest("", "/regex/test", nil)
+	if err != nil {
+		t.Fatalf("error creating http request: %v", err)
+	}
+	request.SetBasicAuth(users.Admin, users.Admin)
+	writer = httptest.NewRecorder()
+	router.ServeHTTP(writer, request)
+	if writer.Code != http.StatusOK {
+		t.Fatalf("expected status %d but got %d", http.StatusOK, writer.Code)
+	}
+	// register a new user and try to access the content protected by auth manager.
+
+	builder := users.UserBuilder{}
+	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
+		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita").
+		WithRoles(users.Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
+	userNikita, err := builder.Build()
+	if err != nil {
+		t.Fatalf("failed to build test user")
+	}
+	request, err = http.NewRequest("", "/", nil)
+	if err != nil {
+		t.Fatalf("error creating http request: %v", err)
+	}
+	request.SetBasicAuth(userNikita.UserName, "nikita")
+	writer = httptest.NewRecorder()
+	router.ServeHTTP(writer, request)
+	if writer.Code != http.StatusForbidden {
+		t.Fatalf("expected status %d but got %d", http.StatusForbidden, writer.Code)
+	}
+	request, err = http.NewRequest("", "/regex/test", nil)
+	if err != nil {
+		t.Fatalf("error creating http request: %v", err)
+	}
+	request.SetBasicAuth(userNikita.UserName, "nikita")
+	writer = httptest.NewRecorder()
+	router.ServeHTTP(writer, request)
+	if writer.Code != http.StatusForbidden {
+		t.Fatalf("expected status %d but got %d", http.StatusForbidden, writer.Code)
+	}
+}
+
+func initTestAuthManager(authManager *authManager){
+	authManager.addPathToMap("/", func(user *users.User) bool{
+		if user.UserName == "nikita" {
+			return true
+		}
+		return false
+	})
+	regex, _ := regexp.Compile("/regex/.")
+	authManager.addRegex(regex, func(user *users.User) bool{
+		if user.UserName == "nikita" {
+			return true
+		}
+		return false
+	})
 }
