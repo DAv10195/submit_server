@@ -12,11 +12,18 @@ func InitServer(cfg *Config) *http.Server {
 	baseRouter := mux.NewRouter()
 	am := NewAuthManager()
 	baseRouter.Use(contentTypeMiddleware, authenticationMiddleware, am.authorizationMiddleware)
+	agentsShutdown := initAgentsRouter(baseRouter, am)
 	initUsersRouter(baseRouter, am)
-	return &http.Server{
+	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      baseRouter,
 		WriteTimeout: serverTimeout,
 		ReadTimeout:  serverTimeout,
 	}
+	server.RegisterOnShutdown(agentsShutdown)
+	return server
+}
+
+func init() {
+	agentMessageTypes.Add(MessageTypeKeepalive)
 }

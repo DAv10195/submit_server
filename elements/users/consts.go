@@ -5,4 +5,5 @@ const (
 	Admin 			= "admin"
 	StandardUser 	= "std_user"
 	Secretary		= "secretary"
+	Agent			= "agent"
 )
