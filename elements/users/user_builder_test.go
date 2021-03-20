@@ -9,7 +9,7 @@ import (
 )
 
 func createValidUser() error {
-	builder := NewUserBuilder(db.System)
+	builder := NewUserBuilder(db.System, false)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
 		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita").
 		WithRoles(Admin)
@@ -21,7 +21,7 @@ func createValidUser() error {
 }
 
 func emptyUserName() error {
-	builder := NewUserBuilder(db.System)
+	builder := NewUserBuilder(db.System, false)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
 		WithLastName("kogan").WithPassword("nikita").
 		WithRoles(Admin)
@@ -36,7 +36,7 @@ func emptyUserName() error {
 }
 
 func emptyRoles() error {
-	builder := NewUserBuilder(db.System)
+	builder := NewUserBuilder(db.System, false)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
 		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita")
 	_, err := builder.Build()
@@ -50,7 +50,7 @@ func emptyRoles() error {
 }
 
 func emptyPassword() error {
-	builder := NewUserBuilder(db.System)
+	builder := NewUserBuilder(db.System, false)
 	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
 		WithLastName("kogan").WithUserName("nikita").WithRoles(Admin)
 	_, err := builder.Build()

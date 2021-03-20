@@ -144,14 +144,14 @@ func TestAuthorizationMiddleware(t *testing.T){
 }
 
 func initTestAuthManager(authManager *authManager){
-	authManager.addPathToMap("/", func(user *users.User) bool{
+	authManager.addPathToMap("/", func(user *users.User, _ string) bool{
 		if user.UserName == "nikita" {
 			return true
 		}
 		return false
 	})
-	regex, _ := regexp.Compile("/regex/.")
-	authManager.addRegex(regex, func(user *users.User) bool{
+	regex := regexp.MustCompile("/regex/.")
+	authManager.addRegex(regex, func(user *users.User, _ string) bool{
 		if user.UserName == "nikita" {
 			return true
 		}

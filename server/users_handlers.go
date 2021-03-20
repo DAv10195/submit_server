@@ -6,21 +6,18 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/elements/users"
-	"github.com/DAv10195/submit_server/util/containers"
+	"github.com/DAv10195/submit_server/util"
 	"github.com/gorilla/mux"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
-	isSelfRequest := requestedUserName == user.UserName
-	if !isSelfRequest && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
-		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
-		return
-	}
 	var requestedUser *users.User
-	if isSelfRequest {
+	if requestedUserName == user.UserName {
 		requestedUser = user
 	} else {
 		var err error
@@ -38,11 +35,6 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(authenticatedUser).(*users.User)
-	if !user.Roles.Contains(users.Secretary) && !users.Roles.Contains(users.Admin) {
-		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
-		return
-	}
 	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Users), func(_, elementBytes []byte) error {
 		user := &users.User{}
@@ -59,6 +51,7 @@ func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
+	requestUser := r.Context().Value(authenticatedUser).(*users.User)
 	var body struct {
 		Users	[]*users.User	`json:"users"`
 	}
@@ -67,10 +60,14 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var elementsToCreate []db.IBucketElement
-	for _, user := range body.Users {
-		if err := users.ValidateNew(user); err != nil {
+	for _, u := range body.Users {
+		builder := users.NewUserBuilder(requestUser.UserName, false)
+		user, err := builder.WithUserName(u.UserName).WithFirstName(u.FirstName).WithLastName(u.LastName).
+			WithPassword(u.Password).WithEmail(u.Email).WithRoles(u.Roles.Slice()...).
+			WithCoursesAsStaff(u.CoursesAsStaff.Slice()...).WithCoursesAsStudent(u.CoursesAsStudent.Slice()...).Build()
+		if err != nil {
 			_, ok1 := err.(*db.ErrKeyExistsInBucket)
-			_, ok2 := err.(*users.ErrInsufficientData)
+			_, ok2 := err.(*util.ErrInsufficientData)
 			if ok1 || ok2 {
 				writeErrResp(w, r, http.StatusBadRequest, err)
 			} else {
@@ -78,16 +75,6 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
-		encryptedPassword, err := db.Encrypt(user.Password)
-		if err != nil {
-			writeErrResp(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		user.Password = encryptedPassword
-		user.Roles = containers.NewStringSet()
-		user.Roles.Add(users.StandardUser)
-		user.CoursesAsStaff = containers.NewStringSet()
-		user.CoursesAsStudent = containers.NewStringSet()
 		messageBox := messages.NewMessageBox()
 		user.MessageBox = messageBox.ID
 		elementsToCreate = append(elementsToCreate, messageBox, user)
@@ -102,25 +89,18 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 func handleDelUser(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
-	isSelfRequest := requestedUserName == user.UserName
-	if !isSelfRequest && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
-		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
+	if requestedUserName == user.UserName {
+		writeStrErrResp(w, r, http.StatusBadRequest, "self deletion is forbidden")
 		return
 	}
-	var requestedUser *users.User
-	if isSelfRequest {
-		requestedUser = user
-	} else {
-		var err error
-		requestedUser, err = users.Get(requestedUserName)
-		if err != nil {
-			if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
-				writeErrResp(w, r, http.StatusNotFound, err)
-			} else {
-				writeErrResp(w, r, http.StatusInternalServerError, err)
-			}
-			return
+	requestedUser, err := users.Get(requestedUserName)
+	if err != nil {
+		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+			writeErrResp(w, r, http.StatusNotFound, err)
+		} else {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
 		}
+		return
 	}
 	if err := db.Delete(requestedUser); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
@@ -132,18 +112,13 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
-	isSelfRequest := requestedUserName == user.UserName
-	if !isSelfRequest && !user.Roles.Contains(users.Secretary) && !user.Roles.Contains(users.Admin) {
-		writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
-		return
-	}
 	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(requestedUserName))
 	if err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
 	if !exists {
-		writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("user named %s doesn't exist", requestedUserName))
+		writeStrErrResp(w, r, http.StatusNotFound, fmt.Sprintf("user named %s doesn't exist", requestedUserName))
 		return
 	}
 	updatedUser := &users.User{}
@@ -155,6 +130,19 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		writeStrErrResp(w, r, http.StatusBadRequest, "updating user name is forbidden")
 		return
 	}
+	preUpdateUser, err := users.Get(requestedUserName)
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if preUpdateUser.Password != updatedUser.Password {
+		encryptedPassword, err := db.Encrypt(updatedUser.Password)
+		if err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		updatedUser.Password = encryptedPassword
+	}
 	if err := db.Update(user.UserName, updatedUser); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
@@ -164,11 +152,19 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 // configure the users router
 func initUsersRouter(r *mux.Router, manager *authManager) {
-	usersRouter := r.PathPrefix(fmt.Sprintf("/%s", db.Users)).Subrouter()
+	usersBasePath := fmt.Sprintf("/%s", db.Users)
+	usersRouter := r.PathPrefix(usersBasePath).Subrouter()
 	usersRouter.HandleFunc("/", handleGetAllUsers).Methods(http.MethodGet)
 	usersRouter.HandleFunc("/", handleRegisterUsers).Methods(http.MethodPost)
+	manager.addPathToMap(fmt.Sprintf("%s/", usersBasePath), func (user *users.User, _ string) bool {
+		return user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin)
+	})
 	specificUserPath := fmt.Sprintf("/{%s}", userName)
 	usersRouter.HandleFunc(specificUserPath, handleGetUser).Methods(http.MethodGet)
 	usersRouter.HandleFunc(specificUserPath, handleDelUser).Methods(http.MethodDelete)
 	usersRouter.HandleFunc(specificUserPath, handleUpdateUser).Methods(http.MethodPut)
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", usersBasePath)), func (user *users.User, path string) bool {
+		isSelfRequest := user.UserName == path[strings.LastIndex(path, "/") + 1 : ] // if the user is accessing his own user data
+		return isSelfRequest || user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin)
+	})
 }

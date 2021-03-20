@@ -38,24 +38,12 @@ func InitDefaultAdmin() error {
 	if err != nil {
 		return err
 	}
-	if exists {
-		return nil
+	if !exists {
+		if _, err := NewUserBuilder(db.System, true).WithUserName(Admin).WithPassword(Admin).WithRoles(Admin).Build(); err != nil {
+			return err
+		}
 	}
-	password, err := db.Encrypt(Admin)
-	if err != nil {
-		return err
-	}
-	messageBox := messages.NewMessageBox()
-	user := &User{
-		UserName: Admin,
-		Password: password,
-		MessageBox: messageBox.ID,
-		Roles: containers.NewStringSet(),
-		CoursesAsStaff: containers.NewStringSet(),
-		CoursesAsStudent: containers.NewStringSet(),
-	}
-	user.Roles.Add(Admin)
-	return db.Update(db.System, messageBox, user)
+	return nil
 }
 
 // return the user represented by the given user name if that user exists
@@ -91,23 +79,8 @@ func Authenticate(user, password string) (*User, error) {
 	return userStruct, nil
 }
 
-func ValidateNew(user *User) error {
-	if user.UserName == "" {
-		return &util.ErrInsufficientData{Message: "missing user name"}
-	}
-	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(user.UserName))
-	if err != nil {
-		return err
-	}
-	if exists {
-		return &db.ErrKeyExistsInBucket{Bucket: db.Users, Key: user.UserName}
-	}
-	if user.Password == "" {
-		return &util.ErrInsufficientData{Message: "missing password"}
-	}
-	return nil
-}
-
+// As building a user requires lots of validations and building of inner objects (e.g. a message box), the builder
+// pattern can be really useful here
 type UserBuilder struct {
 	userName         string
 	firstName        string
@@ -118,10 +91,11 @@ type UserBuilder struct {
 	coursesAsStaff   *containers.StringSet
 	coursesAsStudent *containers.StringSet
 	asUser			 string
+	withDbUpdate	 bool
 }
 
-func NewUserBuilder(asUser string) *UserBuilder{
-	return &UserBuilder{roles: containers.NewStringSet(), coursesAsStaff: containers.NewStringSet(), coursesAsStudent: containers.NewStringSet(), asUser: asUser}
+func NewUserBuilder(asUser string, withDbUpdate bool) *UserBuilder{
+	return &UserBuilder{roles: containers.NewStringSet(), coursesAsStaff: containers.NewStringSet(), coursesAsStudent: containers.NewStringSet(), asUser: asUser, withDbUpdate: withDbUpdate}
 }
 
 func (b *UserBuilder) WithUserName(userName string) *UserBuilder {
@@ -196,20 +170,22 @@ func (b *UserBuilder) Build() (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	messageBox := messages.NewMessageBox()
 	user := &User{
 		UserName: b.userName,
 		FirstName: b.firstName,
 		LastName: b.lastName,
 		Password: encryptedPassword,
 		Email: b.email,
-		MessageBox: messageBox.ID,
 		Roles: b.roles,
 		CoursesAsStaff: b.coursesAsStaff,
 		CoursesAsStudent: b.coursesAsStudent,
 	}
-	if err := db.Update(b.asUser, messageBox, user); err != nil {
-		return nil, err
+	if b.withDbUpdate {
+		messageBox := messages.NewMessageBox()
+		user.MessageBox = messageBox.ID
+		if err := db.Update(b.asUser, messageBox, user); err != nil {
+			return nil, err
+		}
 	}
 	return user, nil
 }
