@@ -113,10 +113,9 @@ func TestAuthorizationMiddleware(t *testing.T){
 	}
 	// register a new user and try to access the content protected by auth manager.
 
-	builder := users.UserBuilder{}
-	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").
-		WithLastName("kogan").WithUserName("nikita").WithPassword("nikita").
-		WithRoles(users.Admin).WithCoursesAsStaff("infi").WithCoursesAsStudent("algo")
+	builder := users.NewUserBuilder(db.System, true)
+	builder.WithEmail("nikita.kogan@sap.com").WithFirstName("nikita").WithLastName("kogan").
+		WithUserName("nikita").WithPassword("nikita").WithRoles(users.StandardUser)
 	userNikita, err := builder.Build()
 	if err != nil {
 		t.Fatalf("failed to build test user")
@@ -145,14 +144,14 @@ func TestAuthorizationMiddleware(t *testing.T){
 
 func initTestAuthManager(authManager *authManager){
 	authManager.addPathToMap("/", func(user *users.User, _ string) bool{
-		if user.UserName == "nikita" {
+		if user.Roles.Contains(users.Admin) {
 			return true
 		}
 		return false
 	})
 	regex := regexp.MustCompile("/regex/.")
 	authManager.addRegex(regex, func(user *users.User, _ string) bool{
-		if user.UserName == "nikita" {
+		if user.Roles.Contains(users.Admin) {
 			return true
 		}
 		return false
