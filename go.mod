@@ -15,5 +15,3 @@ require (
 	golang.org/x/sys v0.0.0-20201221093633-bc327ba9c2f0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
-
-replace github.com/DAv10195/submit_commons => ../submit_commons
