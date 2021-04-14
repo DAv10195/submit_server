@@ -1,9 +1,9 @@
 package messages
 
 import (
+	commons "github.com/DAv10195/submit_commons"
 	"github.com/DAv10195/submit_commons/containers"
 	"github.com/DAv10195/submit_server/db"
-	"github.com/dchest/uniuri"
 )
 
 // message box
@@ -23,7 +23,7 @@ func (m *MessageBox) Bucket() []byte {
 
 func NewMessageBox() *MessageBox {
 	return &MessageBox{
-		ID: uniuri.New(),
+		ID: commons.GenerateUniqueId(),
 		Messages: containers.NewStringSet(),
 	}
 }

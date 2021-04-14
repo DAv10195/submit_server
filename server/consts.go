@@ -13,8 +13,4 @@ const (
 	authenticatedUser		= "authenticated_user"
 
 	serverTimeout			= 15 * time.Second
-
-	agents 					= "agents"
-
-	MessageTypeKeepalive	= "keepalive"
 )
