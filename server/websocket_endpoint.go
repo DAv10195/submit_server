@@ -2,8 +2,8 @@ package server
 
 import (
 	"fmt"
+	"github.com/DAv10195/submit_commons/containers"
 	"github.com/DAv10195/submit_server/elements/users"
-	"github.com/DAv10195/submit_server/util/containers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -62,7 +62,7 @@ func (s *agentSession) readLoop() {
 		}
 		handlers, found := s.messageHandlers[msgType]
 		if !found {
-			logger.Errorf("invalid message type [ %s ] received from agent on %v", s.conn.RemoteAddr())
+			logger.Errorf("invalid message type [ %s ] received from agent on %v", msgType, s.conn.RemoteAddr())
 			continue
 		}
 		go func() {

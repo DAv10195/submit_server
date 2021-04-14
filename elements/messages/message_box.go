@@ -1,8 +1,8 @@
 package messages
 
 import (
+	"github.com/DAv10195/submit_commons/containers"
 	"github.com/DAv10195/submit_server/db"
-	"github.com/DAv10195/submit_server/util/containers"
 	"github.com/dchest/uniuri"
 )
 

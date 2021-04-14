@@ -1,6 +1,6 @@
 package db
 
-import "github.com/DAv10195/submit_server/util/encryption"
+import "github.com/DAv10195/submit_commons/encryption"
 
 var dbEncryption encryption.Encryption
 

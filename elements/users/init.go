@@ -1,6 +1,6 @@
 package users
 
-import "github.com/DAv10195/submit_server/util/containers"
+import "github.com/DAv10195/submit_commons/containers"
 
 var Roles = containers.NewStringSet()
 
