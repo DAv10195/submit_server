@@ -10,6 +10,7 @@ var buckets = []string{Courses, Users, AssignmentInstances, AssignmentDefinition
 
 var db *bolt.DB
 
+// initialize the BoltDB in the given path. In case the DB exists in the given path, then the existing DB will be used
 func InitDB(path string) error {
 	if err := initDbEncryption(filepath.Join(path, DatabaseEncryptionKeyFileName)); err != nil {
 		return err

@@ -3,8 +3,8 @@ package users
 import (
 	"errors"
 	"fmt"
+	submiterr "github.com/DAv10195/submit_commons/errors"
 	"github.com/DAv10195/submit_server/db"
-	"github.com/DAv10195/submit_server/util"
 	"testing"
 )
 
@@ -29,7 +29,7 @@ func emptyUserName() error {
 	if err == nil {
 		return errors.New("error not returned when building user with empty user name")
 	}
-	if _, ok := err.(*util.ErrInsufficientData); !ok {
+	if _, ok := err.(*submiterr.ErrInsufficientData); !ok {
 		return errors.New("returned error is not of type ErrInsufficientData")
 	}
 	return nil
@@ -43,7 +43,7 @@ func emptyRoles() error {
 	if err == nil {
 		return errors.New("error not returned when building user with no roles")
 	}
-	if _, ok := err.(*util.ErrInsufficientData); !ok {
+	if _, ok := err.(*submiterr.ErrInsufficientData); !ok {
 		return errors.New("returned error is not of type ErrInsufficientData")
 	}
 	return nil
@@ -57,7 +57,7 @@ func emptyPassword() error {
 	if err == nil {
 		return errors.New("error not returned when building user with empty password")
 	}
-	if _, ok := err.(*util.ErrInsufficientData); !ok {
+	if _, ok := err.(*submiterr.ErrInsufficientData); !ok {
 		return errors.New("returned error is not of type ErrInsufficientData")
 	}
 	return nil

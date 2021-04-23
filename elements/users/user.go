@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/DAv10195/submit_commons/containers"
+	submiterr "github.com/DAv10195/submit_commons/errors"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
-	"github.com/DAv10195/submit_server/util"
 )
 
 // user
@@ -133,7 +133,7 @@ func (b *UserBuilder) WithRoles(roles ...string)*UserBuilder{
 
 func (b *UserBuilder) Build() (*User, error) {
 	if b.userName == "" {
-		return nil, &util.ErrInsufficientData{Message: "given user name can't be empty"}
+		return nil, &submiterr.ErrInsufficientData{Message: "given user name can't be empty"}
 	}
 	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(b.userName))
 	if err != nil {
@@ -143,10 +143,10 @@ func (b *UserBuilder) Build() (*User, error) {
 		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Users, Key: b.userName}
 	}
 	if b.password == "" {
-		return nil, &util.ErrInsufficientData{Message: "given password can't be empty"}
+		return nil, &submiterr.ErrInsufficientData{Message: "given password can't be empty"}
 	}
 	if b.roles.NumberOfElements() == 0 {
-		return nil, &util.ErrInsufficientData{Message: "user must have at least one role"}
+		return nil, &submiterr.ErrInsufficientData{Message: "user must have at least one role"}
 	}
 	for _, r := range b.roles.Slice() {
 		if !Roles.Contains(r) {

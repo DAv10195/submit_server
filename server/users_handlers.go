@@ -3,16 +3,17 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/DAv10195/submit_commons/errors"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/elements/users"
-	"github.com/DAv10195/submit_server/util"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
 	"strings"
 )
 
+// return information about the requested user
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
@@ -34,6 +35,7 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	writeElem(w, r, http.StatusOK, requestedUser)
 }
 
+// return information about all users
 func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Users), func(_, elementBytes []byte) error {
@@ -50,6 +52,7 @@ func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 	writeElements(w, r, http.StatusOK, elements)
 }
 
+// register the given users with their given information
 func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 	requestUser := r.Context().Value(authenticatedUser).(*users.User)
 	var body struct {
@@ -67,7 +70,7 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 			WithCoursesAsStaff(u.CoursesAsStaff.Slice()...).WithCoursesAsStudent(u.CoursesAsStudent.Slice()...).Build()
 		if err != nil {
 			_, ok1 := err.(*db.ErrKeyExistsInBucket)
-			_, ok2 := err.(*util.ErrInsufficientData)
+			_, ok2 := err.(*errors.ErrInsufficientData)
 			if ok1 || ok2 {
 				writeErrResp(w, r, http.StatusBadRequest, err)
 			} else {
@@ -86,6 +89,7 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, r, http.StatusOK, &Response{"users created successfully"})
 }
 
+// delete the user with the given name
 func handleDelUser(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
@@ -109,6 +113,7 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("user \"%s\" deleted successfully", requestedUser.UserName)})
 }
 
+// update the user with the given name with the given information
 func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
