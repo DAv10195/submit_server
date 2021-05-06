@@ -21,4 +21,5 @@ const (
 	Messages					= "messages"
 	Tests						= "tests"
 	Appeals						= "appeals"
+	Agents						= "agents"
 )

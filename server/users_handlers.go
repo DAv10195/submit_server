@@ -82,7 +82,7 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 		user.MessageBox = messageBox.ID
 		elementsToCreate = append(elementsToCreate, messageBox, user)
 	}
-	if err := db.Update(db.System, elementsToCreate...); err != nil {
+	if err := db.Update(requestUser.UserName, elementsToCreate...); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}

@@ -1,26 +1,30 @@
 package server
 
 import (
+	"context"
 	"fmt"
-	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/gorilla/mux"
 	"net/http"
+	"sync"
 )
 
-func InitServer(cfg *Config) *http.Server {
+func InitServer(cfg *Config, wg *sync.WaitGroup, ctx context.Context) *http.Server {
 	logger.Info("initializing server...")
 	// configure router and middleware
 	baseRouter := mux.NewRouter()
 	am := NewAuthManager()
 	baseRouter.Use(contentTypeMiddleware, authenticationMiddleware, am.authorizationMiddleware)
 	initUsersRouter(baseRouter, am)
-	baseRouter.HandleFunc(submitws.Agents, agentEndpoints.agentsEndpoint)
+	initAgentsBackend(baseRouter, am, ctx, wg)
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
 		Handler:      baseRouter,
 		WriteTimeout: serverTimeout,
 		ReadTimeout:  serverTimeout,
 	}
-	server.RegisterOnShutdown(agentEndpoints.close)
+	server.RegisterOnShutdown(func () {
+		defer wg.Done()
+		agentEndpoints.close()
+	})
 	return server
 }

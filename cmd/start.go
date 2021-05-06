@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -65,7 +66,9 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			}
 			cfg := &server.Config{}
 			cfg.Port = viper.GetInt(flagServerPort)
-			srv := server.InitServer(cfg)
+			wg := &sync.WaitGroup{}
+			wg.Add(1)
+			srv := server.InitServer(cfg, wg, ctx)
 			go func() {
 				if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 					logger.WithError(err).Fatal("submit server crashed")
@@ -79,6 +82,7 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			if err := srv.Shutdown(ctx); err != nil {
 				return err
 			}
+			wg.Wait()
 			return nil
 		},
 	}
