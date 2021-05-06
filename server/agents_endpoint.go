@@ -72,7 +72,7 @@ func (e *agentEndpoint) write(msg *submitws.Message) {
 	if err := e.conn.WriteMessage(websocket.BinaryMessage, msg.ToBinary()); err != nil {
 		logger.WithError(err).Errorf("error sending message to agent with id == %s: %v", e.id, err)
 		if err := e.conn.Close(); err != nil {
-			logger.WithError(err).Errorf("error closing connection to agent with id == %s after write error: err", e.id, err)
+			logger.WithError(err).Errorf("error closing connection to agent with id == %s after write error: %v", e.id, err)
 		}
 		e.isClosed = true
 	}
