@@ -82,7 +82,7 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 		user.MessageBox = messageBox.ID
 		elementsToCreate = append(elementsToCreate, messageBox, user)
 	}
-	if err := db.Update(db.System, elementsToCreate...); err != nil {
+	if err := db.Update(requestUser.UserName, elementsToCreate...); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -91,9 +91,8 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 
 // delete the user with the given name
 func handleDelUser(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
-	if requestedUserName == user.UserName {
+	if requestedUserName == r.Context().Value(authenticatedUser).(*users.User).UserName {
 		writeStrErrResp(w, r, http.StatusBadRequest, "self deletion is forbidden")
 		return
 	}
@@ -115,7 +114,6 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 
 // update the user with the given name with the given information
 func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
-	user := r.Context().Value(authenticatedUser).(*users.User)
 	requestedUserName := mux.Vars(r)[userName]
 	exists, err := db.KeyExistsInBucket([]byte(db.Users), []byte(requestedUserName))
 	if err != nil {
@@ -148,7 +146,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		}
 		updatedUser.Password = encryptedPassword
 	}
-	if err := db.Update(user.UserName, updatedUser); err != nil {
+	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, updatedUser); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}

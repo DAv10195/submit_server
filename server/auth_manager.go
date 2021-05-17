@@ -31,8 +31,12 @@ func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler {
 		// try to get the handler with the path
 		handler := a.authMap[path]
 		// if path is in the map invoke the handler.
-		if handler != nil && !handler(user, path) {
-			writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
+		if handler != nil {
+			if handler(user, path) {
+				next.ServeHTTP(w, r)
+			} else {
+				writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
+			}
 			return
 		}
 		// well, no direct handler, lets try matching regular expressions to find a handler

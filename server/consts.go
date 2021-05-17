@@ -12,5 +12,9 @@ const (
 
 	authenticatedUser		= "authenticated_user"
 
+	agentId					= "agentId"
+	hello					= "Hello"
+	endpoint				= "endpoint"
+
 	serverTimeout			= 15 * time.Second
 )
