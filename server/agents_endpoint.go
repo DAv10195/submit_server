@@ -11,8 +11,10 @@ import (
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"math"
 	"net/http"
 	"regexp"
+	"sort"
 	"sync"
 	"time"
 )
@@ -56,6 +58,10 @@ func (e *agentEndpoint) readLoop() {
 		msg, err := submitws.FromBinary(payload)
 		if err != nil {
 			logger.WithError(err).Warnf("invalid message sent from agent with id == %s. Error parsing websocket message: %v", e.id, err)
+			continue
+		}
+		if agentMsgHandlers[msg.Type] == nil {
+			logger.WithError(err).Warnf("invalid message sent form agent with id == %s. No handler for message with type == %s", e.id, msg.Type)
 			continue
 		}
 		go agentMsgHandlers[msg.Type](e.id, msg.Payload)
@@ -214,6 +220,218 @@ func (m *agentEndpointsManager) agentStatusMonitor(ctx context.Context, wg *sync
 	}
 }
 
+// given a task, return the ID of the least busy agent that can run it
+func (m *agentEndpointsManager) selectAgentForTask(task *agents.Task) (string, error) {
+	var relevantAgents []*agents.Agent
+	if err := db.QueryBucket([]byte(db.Agents), func (_, agentBytes []byte) error {
+		agent := &agents.Agent{}
+		if err := json.Unmarshal(agentBytes, agent); err != nil {
+			return err
+		}
+		if agent.Status != agents.Up {
+			return nil
+		}
+		if task.Architecture != "" && task.Architecture != agent.Architecture {
+			return nil
+		}
+		if task.OsType != "" && task.OsType != agent.OsType {
+			return nil
+		}
+		relevantAgents = append(relevantAgents, agent)
+		return nil
+	}); err != nil {
+		return "", err
+	}
+	if len(relevantAgents) == 0 {
+		return "", fmt.Errorf("no connected agents that can run the task")
+	}
+	sort.Slice(relevantAgents, func (i, j int) bool {
+		return relevantAgents[i].NumRunningTasks < relevantAgents[j].NumRunningTasks
+	})
+	selectedAgent := relevantAgents[0]
+	selectedAgent.NumRunningTasks++
+	if err := db.Update(db.System, selectedAgent); err != nil {
+		return "", err
+	}
+	return selectedAgent.ID, nil
+}
+
+func (m *agentEndpointsManager) updateTaskWithDescriptionToErr(task *agents.Task, description string) {
+	task.Status = agents.TaskStatusError
+	task.Description = description
+	if err := db.Update(db.System, task); err != nil {
+		logger.WithError(err).Errorf("failed updating task with id == %s to error status", task.ID)
+	}
+}
+
+func (m *agentEndpointsManager) updateTaskWithDescriptionToTimeout(task *agents.Task) {
+	task.Status = agents.TaskStatusTimeout
+	task.Description = "timeout waiting for task response"
+	if err := db.Update(db.System, task); err != nil {
+		logger.WithError(err).Errorf("failed updating task with id == %s to timeout status", task.ID)
+	}
+}
+
+func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
+	resp, err := agents.GetTaskResponse(task.TaskResponse)
+	if err != nil {
+		logger.WithError(err).Errorf("error getting task response with id == %s for task with id == %s", task.TaskResponse, task.ID)
+		m.updateTaskWithDescriptionToErr(task, err.Error())
+		return
+	}
+	handler := agentTaskRespHandlers[resp.Handler]
+	if handler == nil {
+		logger.Errorf("handler ('%s') of response for task with id == %s not found", resp.Handler, task.ID)
+		m.updateTaskWithDescriptionToErr(task, "response handler not found")
+		return
+	}
+	if err := handler([]byte(resp.Payload)); err != nil {
+		logger.WithError(err).Errorf("error handling response for task with id == %s", task.ID)
+		m.updateTaskWithDescriptionToErr(task, err.Error())
+		return
+	}
+	task.Description = fmt.Sprintf("successfully processed response using the following handler: %s", resp.Handler)
+	task.Status = agents.TaskStatusDone
+	if err := db.Update(db.System, task); err != nil {
+		logger.WithError(err).Errorf("error updating task with id = %s to processed status", task.ID)
+	}
+}
+
+// process a batch of tasks. Executed by a task processing worker goroutine
+func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Task, wg *sync.WaitGroup) {
+	defer wg.Done()
+	logger.Debugf("agents tasks monitor: task processing worker #%d processing %d tasks", workerNum, len(tasks))
+	now := time.Now().UTC()
+	for _, task := range tasks {
+		switch task.Status {
+			case agents.TaskStatusReady:
+				if task.Agent == "" {
+					selectedAgentId, err := m.selectAgentForTask(task)
+					if err != nil {
+						logger.WithError(err).Errorf("agents tasks monitor: failed selecting agent for task with id == %s", task.ID)
+						m.updateTaskWithDescriptionToErr(task, err.Error())
+						continue
+					}
+					task.Agent = selectedAgentId
+				}
+				selectedAgentEndpoint := m.getEndpoint(task.Agent)
+				if selectedAgentEndpoint == nil {
+					logger.Errorf("agents tasks monitor: agent with id == %s was selected to run task with id == %s but no endpoint available for him", task.Agent, task.ID)
+					m.updateTaskWithDescriptionToErr(task, "agent unavailable")
+					continue
+				}
+				msg, err := task.GetWsMessage()
+				if err != nil {
+					logger.WithError(err).Errorf("error creating message from task with id == %s", task.ID)
+					m.updateTaskWithDescriptionToErr(task, err.Error())
+					continue
+				}
+				task.Status = agents.TaskStatusInProgress
+				if err := db.Update(db.System, task); err != nil {
+					logger.WithError(err).Errorf("error updating task with id == %s to in progress state", task.ID)
+					m.updateTaskWithDescriptionToErr(task, err.Error())
+					continue
+				}
+				selectedAgentEndpoint.write(msg)
+			case agents.TaskStatusInProgress:
+				if task.TaskResponse != "" {
+					m.processTaskWithResponse(task)
+				} else if now.Sub(task.UpdatedOn) > taskProcessingTimeout {
+					m.updateTaskWithDescriptionToTimeout(task)
+				}
+			default: // should not happen...
+				logger.Errorf("task with id == %s was selected for processing it has status = %d (not in progress or ready)", task.ID, task.Status)
+		}
+	}
+}
+
+// process tasks using processing workers (goroutines)
+func (m *agentEndpointsManager) processTasks() {
+	logger.Debug("agents tasks monitor: processing tasks...")
+	var tasks []*agents.Task
+	var taskElementsToDel []db.IBucketElement
+	now := time.Now().UTC()
+	if err := db.QueryBucket([]byte(db.Tasks), func (_, taskBytes []byte) error {
+		task := &agents.Task{}
+		if err := json.Unmarshal(taskBytes, task); err != nil {
+			return err
+		}
+		if task.Status == agents.TaskStatusReady || task.Status == agents.TaskStatusInProgress {
+			tasks = append(tasks, task)
+		} else if now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour { // delete if updated more than a week ago
+			taskElementsToDel = append(taskElementsToDel, task)
+		}
+		return nil
+	}); err != nil {
+		logger.WithError(err).Error("agents tasks monitor: error querying for tasks to process")
+		return
+	}
+	// if any tasks to delete, then do it in a separate goroutine to not halt the processing and also delete responses...
+	if len(taskElementsToDel) > 0 {
+		go func() {
+			var taskResponseIdsToDel [][]byte
+			for _, taskElem := range taskElementsToDel {
+				taskResponseId := taskElem.(*agents.Task).TaskResponse
+				if taskResponseId != "" {
+					taskResponseIdsToDel = append(taskResponseIdsToDel, []byte(taskResponseId))
+				}
+			}
+			if len(taskResponseIdsToDel) > 0 {
+				if err := db.DeleteKeysFromBucket([]byte(db.TaskResponses), taskResponseIdsToDel...); err != nil {
+					logger.WithError(err).Error("error deleting old task responses (updated more then a week ago)")
+				}
+			}
+			if err := db.Delete(taskElementsToDel...); err != nil {
+				logger.WithError(err).Error("error deleting old tasks (updated more then a week ago)")
+			}
+		}()
+	}
+	// divide tasks between workers
+	numTasks := len(tasks)
+	if numTasks == 0 {
+		logger.Debug("agents tasks monitor: no tasks to process")
+	}
+	sort.Slice(tasks, func(i, j int) bool { // process least recently updated tasks first
+		return tasks[i].UpdatedOn.Before(tasks[j].UpdatedOn)
+	})
+	workersWg := &sync.WaitGroup{}
+	numTasksPerWorker := int(math.Ceil(float64(numTasks) / float64(numTaskProcWorkers)))
+	j := 0
+	for i := 1; i <= numTaskProcWorkers; i++ {
+		if j >= numTasks {
+			break
+		}
+		var tasksForWorker []*agents.Task
+		k := j + numTasksPerWorker
+		if k <= numTasks {
+			tasksForWorker = tasks[j : k]
+		} else {
+			tasksForWorker = tasks[j : numTasks]
+		}
+		workersWg.Add(1)
+		go m._processTasks(i, tasksForWorker, workersWg)
+		j = k
+	}
+	workersWg.Wait()
+}
+
+// start processing tasks and task responses each 10 seconds
+func (m *agentEndpointsManager) agentTasksMonitor(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	m.processTasks()
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+			case <- ticker.C:
+				m.processTasks()
+			case <- ctx.Done():
+				logger.Debug("stopping agent tasks monitor")
+				return
+		}
+	}
+}
+
 func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context, wg *sync.WaitGroup) {
 	agentsBasePath := fmt.Sprintf("/%s", submitws.Agents)
 	agentsRouter := r.PathPrefix(agentsBasePath).Subrouter()
@@ -229,8 +447,9 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", agentsBasePath)), func (user *users.User, _ string) bool {
 		return user.Roles.Contains(users.Admin)
 	})
-	wg.Add(1)
+	wg.Add(2)
 	go agentEndpoints.agentStatusMonitor(ctx, wg)
+	go agentEndpoints.agentTasksMonitor(ctx, wg)
 }
 
 func init() {

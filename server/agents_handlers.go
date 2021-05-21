@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	commons "github.com/DAv10195/submit_commons"
 	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
@@ -43,6 +44,10 @@ func handleGetAgent(w http.ResponseWriter, r *http.Request) {
 type agentMessageHandler func(string, []byte)
 
 var agentMsgHandlers = make(map[string]agentMessageHandler)
+
+type agentTaskResponseHandler func([]byte) error
+
+var agentTaskRespHandlers = make(map[string]agentTaskResponseHandler)
 
 func handleKeepalive(agentId string, payload []byte) {
 	logger.Debugf("keepalive handler: received keepalive message [ %s ] from agent with id == %s", string(payload), agentId)
@@ -91,6 +96,36 @@ func handleKeepalive(agentId string, payload []byte) {
 	}
 }
 
+func handleTaskResponse(agentId string, payload []byte) {
+	logger.Debugf("task response handler: received task response message [ %s ] from agent with id == %s", string(payload), agentId)
+	var endpoint *agentEndpoint
+	if endpoint = agentEndpoints.getEndpoint(agentId); endpoint == nil {
+		logger.Warnf("task response handler: no endpoint for agent with id == %s", agentId)
+		return
+	}
+	taskResponseMsg := &submitws.TaskResponse{}
+	if err := json.Unmarshal(payload, taskResponseMsg); err != nil {
+		logger.WithError(err).Error("task response handler: error parsing task response message")
+		return
+	}
+	task, err := agents.GetTask(taskResponseMsg.Task)
+	if err != nil {
+		logger.WithError(err).Errorf("task response handler: received response for task with id == %s but it doesn't exist", taskResponseMsg.Task)
+		return
+	}
+	taskResponse := &agents.TaskResponse{
+		ID:             commons.GenerateUniqueId(),
+		Payload:        taskResponseMsg.Payload,
+		Handler:        taskResponseMsg.Handler,
+		Task:           taskResponseMsg.Task,
+	}
+	task.TaskResponse = taskResponse.ID
+	if err := db.Update(endpoint.user, taskResponse, task); err != nil {
+		logger.WithError(err).Error("task response handler: error updating task and response")
+	}
+}
+
 func init() {
 	agentMsgHandlers[submitws.MessageTypeKeepalive] = handleKeepalive
+	agentMsgHandlers[submitws.MessageTypeTaskResponse] = handleTaskResponse
 }
