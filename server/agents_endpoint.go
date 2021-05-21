@@ -171,7 +171,7 @@ func (m *agentEndpointsManager) close() {
 func (m *agentEndpointsManager) processAgentsKeepalive() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	logger.Debug("agents status monitor: processing agents keepalive messages...")
+	logger.Debug("agents status monitor: processing agent keepalives...")
 	now := time.Now().UTC()
 	var agentsToMarkAsDown []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Agents), func (_, agentBytes []byte) error {
@@ -199,7 +199,7 @@ func (m *agentEndpointsManager) processAgentsKeepalive() {
 			logger.WithError(err).Error("agents status monitor: error updating agents bucket after keepalive processing")
 		}
 	}
-	logger.Debug("agents status monitor: finished processing agents keepalive messages")
+	logger.Info("agents status monitor: finished processing agent keepalives")
 }
 
 // process agents keepalive each minute. Any agent that didn't send a keepalive in the last minute will be marked
@@ -214,7 +214,7 @@ func (m *agentEndpointsManager) agentStatusMonitor(ctx context.Context, wg *sync
 			case <- ticker.C:
 				m.processAgentsKeepalive()
 			case <- ctx.Done():
-				logger.Debug("stopping agent status monitor")
+				logger.Info("stopping agent status monitor")
 				return
 		}
 	}
@@ -347,7 +347,7 @@ func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Tas
 
 // process tasks using processing workers (goroutines)
 func (m *agentEndpointsManager) processTasks() {
-	logger.Debug("agents tasks monitor: processing tasks...")
+	logger.Info("agents tasks monitor: processing tasks...")
 	var tasks []*agents.Task
 	var taskElementsToDel []db.IBucketElement
 	now := time.Now().UTC()
@@ -413,6 +413,7 @@ func (m *agentEndpointsManager) processTasks() {
 		j = k
 	}
 	workersWg.Wait()
+	logger.Info("agents tasks monitor: finished processing tasks")
 }
 
 // start processing tasks and task responses each 10 seconds
@@ -426,7 +427,7 @@ func (m *agentEndpointsManager) agentTasksMonitor(ctx context.Context, wg *sync.
 			case <- ticker.C:
 				m.processTasks()
 			case <- ctx.Done():
-				logger.Debug("stopping agent tasks monitor")
+				logger.Info("stopping agent tasks monitor")
 				return
 		}
 	}
