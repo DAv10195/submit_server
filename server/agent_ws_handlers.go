@@ -6,48 +6,12 @@ import (
 	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
-	"github.com/gorilla/mux"
-	"net/http"
 	"time"
 )
-
-func handleGetAgents(w http.ResponseWriter, r *http.Request) {
-	var elements []db.IBucketElement
-	if err := db.QueryBucket([]byte(db.Agents), func(_, elementBytes []byte) error {
-		agent := &agents.Agent{}
-		if err := json.Unmarshal(elementBytes, agent); err != nil {
-			return err
-		}
-		elements = append(elements, agent)
-		return nil
-	}); err != nil {
-		writeErrResp(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	writeElements(w, r, http.StatusOK, elements)
-}
-
-func handleGetAgent(w http.ResponseWriter, r *http.Request) {
-	requestedAgentId := mux.Vars(r)[agentId]
-	requestedAgent, err := agents.Get(requestedAgentId)
-	if err != nil {
-		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
-			writeErrResp(w, r, http.StatusNotFound, err)
-		} else {
-			writeErrResp(w, r, http.StatusInternalServerError, err)
-		}
-		return
-	}
-	writeElem(w, r, http.StatusOK, requestedAgent)
-}
 
 type agentMessageHandler func(string, []byte)
 
 var agentMsgHandlers = make(map[string]agentMessageHandler)
-
-type agentTaskResponseHandler func([]byte) error
-
-var agentTaskRespHandlers = make(map[string]agentTaskResponseHandler)
 
 func handleKeepalive(agentId string, payload []byte) {
 	logger.Debugf("keepalive handler: received keepalive message [ %s ] from agent with id == %s", string(payload), agentId)

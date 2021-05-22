@@ -20,4 +20,6 @@ const (
 
 	numTaskProcWorkers		= 10
 	taskProcessingTimeout	= 2 * time.Minute
+	taskId					= "taskId"
+	taskRespId				= "taskRespId"
 )

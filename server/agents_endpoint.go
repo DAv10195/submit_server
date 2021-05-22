@@ -448,6 +448,26 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", agentsBasePath)), func (user *users.User, _ string) bool {
 		return user.Roles.Contains(users.Admin)
 	})
+	tasksBasePath := fmt.Sprintf("/%s", db.Tasks)
+	tasksRouter := r.PathPrefix(tasksBasePath).Subrouter()
+	tasksRouter.HandleFunc("/", handleGetTasks).Methods(http.MethodGet)
+	manager.addPathToMap(fmt.Sprintf("%s/", tasksBasePath), func (user *users.User, _ string) bool {
+		return user.Roles.Contains(users.Admin)
+	})
+	tasksRouter.HandleFunc(fmt.Sprintf("/{%s}", taskId), handleGetTask).Methods(http.MethodGet)
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", tasksBasePath)), func (user *users.User, _ string) bool {
+		return user.Roles.Contains(users.Admin)
+	})
+	taskResponsesBasePath := fmt.Sprintf("/%s", db.TaskResponses)
+	taskResponsesRouter := r.PathPrefix(taskResponsesBasePath).Subrouter()
+	taskResponsesRouter.HandleFunc("/", handleGetTaskResponses).Methods(http.MethodGet)
+	manager.addPathToMap(fmt.Sprintf("%s/", taskResponsesBasePath), func (user *users.User, _ string) bool {
+		return user.Roles.Contains(users.Admin)
+	})
+	taskResponsesRouter.HandleFunc(fmt.Sprintf("/{%s}", taskRespId), handleGetTaskResponse).Methods(http.MethodGet)
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", taskResponsesBasePath)), func (user *users.User, _ string) bool {
+		return user.Roles.Contains(users.Admin)
+	})
 	wg.Add(2)
 	go agentEndpoints.agentStatusMonitor(ctx, wg)
 	go agentEndpoints.agentTasksMonitor(ctx, wg)
