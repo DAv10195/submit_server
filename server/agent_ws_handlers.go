@@ -84,6 +84,7 @@ func handleTaskResponse(agentId string, payload []byte) {
 		Task:           taskResponseMsg.Task,
 	}
 	task.TaskResponse = taskResponse.ID
+	task.Status = agents.TaskStatusDone
 	if err := db.Update(endpoint.user, taskResponse, task); err != nil {
 		logger.WithError(err).Error("task response handler: error updating task and response")
 	}

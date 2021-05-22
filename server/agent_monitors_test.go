@@ -193,6 +193,7 @@ func TestTasksMonitor(t *testing.T) {
 			Task:           task.ID,
 		}
 		task.TaskResponse = tr.ID
+		task.Status = agents.TaskStatusDone
 		taskElementsToUpdate = append(taskElementsToUpdate, task, tr)
 	}
 	if err := db.Update(db.System, taskElementsToUpdate...); err != nil {
@@ -206,7 +207,7 @@ func TestTasksMonitor(t *testing.T) {
 		if err := json.Unmarshal(taskBytes, task); err != nil {
 			return err
 		}
-		if task.Status != agents.TaskStatusDone {
+		if task.Status != agents.TaskStatusOk {
 			t.Fatalf("task for agent with id == %s with id == %s should be done but it isn't", task.Agent, task.ID)
 		}
 		return nil

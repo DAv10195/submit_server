@@ -264,14 +264,6 @@ func (m *agentEndpointsManager) updateTaskWithDescriptionToErr(task *agents.Task
 	}
 }
 
-func (m *agentEndpointsManager) updateTaskWithDescriptionToTimeout(task *agents.Task) {
-	task.Status = agents.TaskStatusTimeout
-	task.Description = "timeout waiting for task response"
-	if err := db.Update(db.System, task); err != nil {
-		logger.WithError(err).Errorf("failed updating task with id == %s to timeout status", task.ID)
-	}
-}
-
 func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 	task.Status = agents.TaskStatusProcessing
 	if err := db.Update(db.System, task); err != nil {
@@ -296,7 +288,7 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 		return
 	}
 	task.Description = fmt.Sprintf("successfully processed response using the following handler: %s", resp.Handler)
-	task.Status = agents.TaskStatusDone
+	task.Status = agents.TaskStatusOk
 	if err := db.Update(db.System, task); err != nil {
 		logger.WithError(err).Errorf("error updating task with id = %s to done status", task.ID)
 	}
@@ -306,7 +298,6 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Task, wg *sync.WaitGroup) {
 	defer wg.Done()
 	logger.Debugf("agents tasks monitor: task processing worker #%d processing %d tasks", workerNum, len(tasks))
-	now := time.Now().UTC()
 	for _, task := range tasks {
 		switch task.Status {
 			case agents.TaskStatusReady:
@@ -334,16 +325,11 @@ func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Tas
 				task.Status = agents.TaskStatusInProgress
 				if err := db.Update(db.System, task); err != nil {
 					logger.WithError(err).Errorf("error updating task with id == %s to in progress state", task.ID)
-					m.updateTaskWithDescriptionToErr(task, err.Error())
 					continue
 				}
 				selectedAgentEndpoint.write(msg)
-			case agents.TaskStatusInProgress:
-				if task.TaskResponse != "" {
-					m.processTaskWithResponse(task)
-				} else if now.Sub(task.UpdatedOn) > taskProcessingTimeout {
-					m.updateTaskWithDescriptionToTimeout(task)
-				}
+			case agents.TaskStatusDone:
+				m.processTaskWithResponse(task)
 			default: // should not happen...
 				logger.Errorf("task with id == %s was selected for processing it has status = %d (not in progress or ready)", task.ID, task.Status)
 		}
@@ -352,19 +338,26 @@ func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Tas
 
 // process tasks using processing workers (goroutines)
 func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
-	var tasks []*agents.Task
-	var taskElementsToDel []db.IBucketElement
+	var tasksToProcess []*agents.Task
+	var taskElementsToDel, taskElementsTimedOut []db.IBucketElement
 	now := time.Now().UTC()
 	if err := db.QueryBucket([]byte(db.Tasks), func (_, taskBytes []byte) error {
 		task := &agents.Task{}
 		if err := json.Unmarshal(taskBytes, task); err != nil {
 			return err
 		}
-		if task.Status == agents.TaskStatusReady || task.Status == agents.TaskStatusInProgress {
-			tasks = append(tasks, task)
-		} else if task.Status != agents.TaskStatusProcessing && now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour {
-			// delete if updated more than a week ago and not being processed
-			taskElementsToDel = append(taskElementsToDel, task)
+		switch task.Status {
+			case agents.TaskStatusReady, agents.TaskStatusDone:
+				tasksToProcess = append(tasksToProcess, task)
+			case agents.TaskStatusInProgress:
+				if now.Sub(task.UpdatedOn) > taskProcessingTimeout {
+					taskElementsTimedOut = append(taskElementsTimedOut, task)
+				}
+			default:
+				// delete if last updated more than a week ago and not processing (should not happen, but let's protect from that case)
+				if task.Status != agents.TaskStatusProcessing && now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour {
+					taskElementsToDel = append(taskElementsToDel, task)
+				}
 		}
 		return nil
 	}); err != nil {
@@ -373,9 +366,11 @@ func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 	}
 	// if any tasks to delete, then do it in a separate goroutine to not halt the processing and also delete responses...
 	if len(taskElementsToDel) > 0 {
-		go func() {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, tasks []db.IBucketElement) {
+			defer wg.Done()
 			var taskResponseIdsToDel [][]byte
-			for _, taskElem := range taskElementsToDel {
+			for _, taskElem := range tasks {
 				taskResponseId := taskElem.(*agents.Task).TaskResponse
 				if taskResponseId != "" {
 					taskResponseIdsToDel = append(taskResponseIdsToDel, []byte(taskResponseId))
@@ -386,18 +381,33 @@ func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 					logger.WithError(err).Error("error deleting old task responses (updated more then a week ago)")
 				}
 			}
-			if err := db.Delete(taskElementsToDel...); err != nil {
+			if err := db.Delete(tasks...); err != nil {
 				logger.WithError(err).Error("error deleting old tasks (updated more then a week ago)")
 			}
-		}()
+		}(wg, taskElementsToDel)
+	}
+	// if any timed out tasks, update them in a separate goroutine to not halt the processing...
+	if len(taskElementsTimedOut) > 0 {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, tasks []db.IBucketElement) {
+			defer wg.Done()
+			for _, taskElem := range tasks {
+				task := taskElem.(*agents.Task)
+				task.Status = agents.TaskStatusTimeout
+				task.Description = "timeout waiting for task response"
+			}
+			if err := db.Update(db.System, tasks...); err != nil {
+				logger.WithError(err).Error("failed updating timed out tasks")
+			}
+		}(wg, taskElementsTimedOut)
 	}
 	// divide tasks between workers
-	numTasks := len(tasks)
+	numTasks := len(tasksToProcess)
 	if numTasks == 0 {
 		logger.Debug("agents tasks monitor: no tasks to process")
 	}
-	sort.Slice(tasks, func(i, j int) bool { // process least recently updated tasks first
-		return tasks[i].UpdatedOn.Before(tasks[j].UpdatedOn)
+	sort.Slice(tasksToProcess, func(i, j int) bool { // process least recently updated tasks first
+		return tasksToProcess[i].UpdatedOn.Before(tasksToProcess[j].UpdatedOn)
 	})
 	numTasksPerWorker := int(math.Ceil(float64(numTasks) / float64(numTaskProcWorkers)))
 	j := 0
@@ -408,9 +418,9 @@ func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 		var tasksForWorker []*agents.Task
 		k := j + numTasksPerWorker
 		if k <= numTasks {
-			tasksForWorker = tasks[j : k]
+			tasksForWorker = tasksToProcess[j : k]
 		} else {
-			tasksForWorker = tasks[j : numTasks]
+			tasksForWorker = tasksToProcess[j : numTasks]
 		}
 		wg.Add(1)
 		go m._processTasks(i, tasksForWorker, wg)
