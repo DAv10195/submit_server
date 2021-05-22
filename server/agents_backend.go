@@ -338,6 +338,7 @@ func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Tas
 
 // process tasks using processing workers (goroutines)
 func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
+	logger.Info("agents tasks monitor: processing agent tasks...")
 	var tasksToProcess []*agents.Task
 	var taskElementsToDel, taskElementsTimedOut []db.IBucketElement
 	now := time.Now().UTC()
