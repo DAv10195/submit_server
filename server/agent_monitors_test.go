@@ -6,6 +6,7 @@ import (
 	commons "github.com/DAv10195/submit_commons"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
+	"sync"
 	"testing"
 	"time"
 )
@@ -150,7 +151,9 @@ func TestTasksMonitor(t *testing.T) {
 			t.Fatalf("error creating task for test: %v", err)
 		}
 	}
-	agentEndpoints.processTasks()
+	wg := &sync.WaitGroup{}
+	agentEndpoints.processTasks(wg)
+	wg.Wait()
 	// check that all tasks are in progress
 	var tasks []*agents.Task
 	if err := db.QueryBucket([]byte(db.Tasks), func (_, taskBytes []byte) error {
@@ -195,7 +198,8 @@ func TestTasksMonitor(t *testing.T) {
 	if err := db.Update(db.System, taskElementsToUpdate...); err != nil {
 		t.Fatalf("error updating task and responses for test: %v", err)
 	}
-	agentEndpoints.processTasks()
+	agentEndpoints.processTasks(wg)
+	wg.Wait()
 	// check that all tasks are done
 	if err := db.QueryBucket([]byte(db.Tasks), func (_, taskBytes []byte) error {
 		task := &agents.Task{}

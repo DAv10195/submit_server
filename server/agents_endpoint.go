@@ -273,6 +273,11 @@ func (m *agentEndpointsManager) updateTaskWithDescriptionToTimeout(task *agents.
 }
 
 func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
+	task.Status = agents.TaskStatusProcessing
+	if err := db.Update(db.System, task); err != nil {
+		logger.WithError(err).Errorf("error updating task with id = %s to processing status", task.ID)
+		return
+	}
 	resp, err := agents.GetTaskResponse(task.TaskResponse)
 	if err != nil {
 		logger.WithError(err).Errorf("error getting task response with id == %s for task with id == %s", task.TaskResponse, task.ID)
@@ -293,7 +298,7 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 	task.Description = fmt.Sprintf("successfully processed response using the following handler: %s", resp.Handler)
 	task.Status = agents.TaskStatusDone
 	if err := db.Update(db.System, task); err != nil {
-		logger.WithError(err).Errorf("error updating task with id = %s to processed status", task.ID)
+		logger.WithError(err).Errorf("error updating task with id = %s to done status", task.ID)
 	}
 }
 
@@ -346,8 +351,7 @@ func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Tas
 }
 
 // process tasks using processing workers (goroutines)
-func (m *agentEndpointsManager) processTasks() {
-	logger.Info("agents tasks monitor: processing tasks...")
+func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 	var tasks []*agents.Task
 	var taskElementsToDel []db.IBucketElement
 	now := time.Now().UTC()
@@ -394,7 +398,6 @@ func (m *agentEndpointsManager) processTasks() {
 	sort.Slice(tasks, func(i, j int) bool { // process least recently updated tasks first
 		return tasks[i].UpdatedOn.Before(tasks[j].UpdatedOn)
 	})
-	workersWg := &sync.WaitGroup{}
 	numTasksPerWorker := int(math.Ceil(float64(numTasks) / float64(numTaskProcWorkers)))
 	j := 0
 	for i := 1; i <= numTaskProcWorkers; i++ {
@@ -408,24 +411,22 @@ func (m *agentEndpointsManager) processTasks() {
 		} else {
 			tasksForWorker = tasks[j : numTasks]
 		}
-		workersWg.Add(1)
-		go m._processTasks(i, tasksForWorker, workersWg)
+		wg.Add(1)
+		go m._processTasks(i, tasksForWorker, wg)
 		j = k
 	}
-	workersWg.Wait()
-	logger.Info("agents tasks monitor: finished processing tasks")
 }
 
 // start processing tasks and task responses each 10 seconds
 func (m *agentEndpointsManager) agentTasksMonitor(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	m.processTasks()
+	m.processTasks(wg)
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 			case <- ticker.C:
-				m.processTasks()
+				m.processTasks(wg)
 			case <- ctx.Done():
 				logger.Info("stopping agent tasks monitor")
 				return
