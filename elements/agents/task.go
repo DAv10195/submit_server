@@ -12,8 +12,9 @@ import (
 // possible status values
 const (
 	TaskStatusReady			= iota
-	TaskStatusInProgress	= iota
 	TaskStatusDone			= iota
+	TaskStatusAssigned		= iota
+	TaskStatusInProgress	= iota
 	TaskStatusProcessing	= iota
 	TaskStatusOk			= iota
 	TaskStatusTimeout		= iota

@@ -260,19 +260,19 @@ func (m *agentEndpointsManager) updateTaskWithDescriptionToErr(task *agents.Task
 	task.Status = agents.TaskStatusError
 	task.Description = description
 	if err := db.Update(db.System, task); err != nil {
-		logger.WithError(err).Errorf("failed updating task with id == %s to error status", task.ID)
+		logger.WithError(err).Errorf("agents tasks monitor: failed updating task with id == %s to error status", task.ID)
 	}
 }
 
 func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 	task.Status = agents.TaskStatusProcessing
 	if err := db.Update(db.System, task); err != nil {
-		logger.WithError(err).Errorf("error updating task with id = %s to processing status", task.ID)
+		logger.WithError(err).Errorf("agents tasks monitor: error updating task with id = %s to processing status", task.ID)
 		return
 	}
 	resp, err := agents.GetTaskResponse(task.TaskResponse)
 	if err != nil {
-		logger.WithError(err).Errorf("error getting task response with id == %s for task with id == %s", task.TaskResponse, task.ID)
+		logger.WithError(err).Errorf("agents tasks monitor: error getting task response with id == %s for task with id == %s", task.TaskResponse, task.ID)
 		m.updateTaskWithDescriptionToErr(task, err.Error())
 		return
 	}
@@ -282,19 +282,19 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 	}
 	handler := agentTaskRespHandlers[resp.Handler]
 	if handler == nil {
-		logger.Errorf("handler ('%s') of response for task with id == %s not found", resp.Handler, task.ID)
+		logger.Errorf("agents tasks monitor: handler ('%s') of response for task with id == %s not found", resp.Handler, task.ID)
 		m.updateTaskWithDescriptionToErr(task, "response handler not found")
 		return
 	}
 	if err := handler([]byte(resp.Payload)); err != nil {
-		logger.WithError(err).Errorf("error handling response for task with id == %s", task.ID)
+		logger.WithError(err).Errorf("agents tasks monitor: error handling response for task with id == %s", task.ID)
 		m.updateTaskWithDescriptionToErr(task, err.Error())
 		return
 	}
 	task.Description = fmt.Sprintf("successfully processed response using the following handler: %s", resp.Handler)
 	task.Status = agents.TaskStatusOk
 	if err := db.Update(db.System, task); err != nil {
-		logger.WithError(err).Errorf("error updating task with id = %s to done status", task.ID)
+		logger.WithError(err).Errorf("agents tasks monitor: error updating task with id = %s to done status", task.ID)
 	}
 }
 
@@ -302,8 +302,21 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Task, wg *sync.WaitGroup) {
 	defer wg.Done()
 	logger.Debugf("agents tasks monitor: task processing worker #%d processing %d tasks", workerNum, len(tasks))
+	// mark all tasks as assigned for a worker for processing and save their statuses
+	// to determine the type of processing required
+	var taskElements []db.IBucketElement
+	taskStatuses := make(map[string]int)
 	for _, task := range tasks {
-		switch task.Status {
+		taskStatuses[task.ID] = task.Status
+		task.Status = agents.TaskStatusAssigned
+		taskElements = append(taskElements, task)
+	}
+	if err := db.Update(db.System, taskElements...); err != nil {
+		logger.WithError(err).Error("agents tasks monitor: error updating tasks to assigned status")
+		return
+	}
+	for _, task := range tasks {
+		switch taskStatuses[task.ID] {
 			case agents.TaskStatusReady:
 				if task.Agent == "" {
 					selectedAgentId, err := m.selectAgentForTask(task)
@@ -322,20 +335,20 @@ func (m *agentEndpointsManager) _processTasks(workerNum int, tasks []*agents.Tas
 				}
 				msg, err := task.GetWsMessage()
 				if err != nil {
-					logger.WithError(err).Errorf("error creating message from task with id == %s", task.ID)
+					logger.WithError(err).Errorf("agents tasks monitor: error creating message from task with id == %s", task.ID)
 					m.updateTaskWithDescriptionToErr(task, err.Error())
 					continue
 				}
 				task.Status = agents.TaskStatusInProgress
 				if err := db.Update(db.System, task); err != nil {
-					logger.WithError(err).Errorf("error updating task with id == %s to in progress state", task.ID)
+					logger.WithError(err).Errorf("agents tasks monitor: error updating task with id == %s to in progress state", task.ID)
 					continue
 				}
 				selectedAgentEndpoint.write(msg)
 			case agents.TaskStatusDone:
 				m.processTaskWithResponse(task)
 			default: // should not happen...
-				logger.Errorf("task with id == %s was selected for processing it has status = %d (not in progress or ready)", task.ID, task.Status)
+				logger.Errorf("agents tasks monitor: task with id == %s was selected for processing it has status = %d (not in progress or ready)", task.ID, task.Status)
 		}
 	}
 }
@@ -359,8 +372,7 @@ func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 					taskElementsTimedOut = append(taskElementsTimedOut, task)
 				}
 			default:
-				// delete if last updated more than a week ago and not processing (should not happen, but let's protect from that case)
-				if task.Status != agents.TaskStatusProcessing && now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour {
+				if now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour { // delete if last updated more than a week ago
 					taskElementsToDel = append(taskElementsToDel, task)
 				}
 		}
