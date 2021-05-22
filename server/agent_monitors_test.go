@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	commons "github.com/DAv10195/submit_commons"
+	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
 	"sync"
@@ -191,6 +192,7 @@ func TestTasksMonitor(t *testing.T) {
 			Payload:        string(payload),
 			Handler:        "mock",
 			Task:           task.ID,
+			ExecStatus:		submitws.TaskRespExecStatusOk,
 		}
 		task.TaskResponse = tr.ID
 		task.Status = agents.TaskStatusDone

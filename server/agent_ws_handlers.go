@@ -83,6 +83,7 @@ func handleTaskResponses(agentId string, payload []byte) {
 			Payload:        taskResponseFromAgent.Payload,
 			Handler:        taskResponseFromAgent.Handler,
 			Task:           taskResponseFromAgent.Task,
+			ExecStatus:		taskResponseFromAgent.Status,
 		}
 		task.TaskResponse = taskResponse.ID
 		task.Status = agents.TaskStatusDone

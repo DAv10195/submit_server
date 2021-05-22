@@ -276,6 +276,10 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 		m.updateTaskWithDescriptionToErr(task, err.Error())
 		return
 	}
+	if resp.ExecStatus == submitws.TaskRespExecStatusErr {
+		m.updateTaskWithDescriptionToErr(task, resp.Payload)
+		return
+	}
 	handler := agentTaskRespHandlers[resp.Handler]
 	if handler == nil {
 		logger.Errorf("handler ('%s') of response for task with id == %s not found", resp.Handler, task.ID)

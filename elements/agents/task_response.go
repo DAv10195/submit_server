@@ -12,6 +12,7 @@ type TaskResponse struct {
 	Payload		string	`json:"payload"`
 	Handler		string	`json:"handler"`
 	Task		string	`json:"task"`
+	ExecStatus	int		`json:"status"`
 }
 
 func (t *TaskResponse) Key() []byte {
