@@ -362,7 +362,8 @@ func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 		}
 		if task.Status == agents.TaskStatusReady || task.Status == agents.TaskStatusInProgress {
 			tasks = append(tasks, task)
-		} else if now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour { // delete if updated more than a week ago
+		} else if task.Status != agents.TaskStatusProcessing && now.Sub(task.UpdatedOn) > 7 * 24 * time.Hour {
+			// delete if updated more than a week ago and not being processed
 			taskElementsToDel = append(taskElementsToDel, task)
 		}
 		return nil
