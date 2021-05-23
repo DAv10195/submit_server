@@ -368,7 +368,7 @@ func (m *agentEndpointsManager) processTasks(wg *sync.WaitGroup) {
 			case agents.TaskStatusReady, agents.TaskStatusDone:
 				tasksToProcess = append(tasksToProcess, task)
 			case agents.TaskStatusInProgress:
-				if now.Sub(task.UpdatedOn) > taskProcessingTimeout {
+				if now.Sub(task.UpdatedOn) > time.Duration(taskProcessingTimeout + task.ExecTimeout) * time.Second {
 					taskElementsTimedOut = append(taskElementsTimedOut, task)
 				}
 			default:
@@ -480,6 +480,7 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 	tasksBasePath := fmt.Sprintf("/%s", db.Tasks)
 	tasksRouter := r.PathPrefix(tasksBasePath).Subrouter()
 	tasksRouter.HandleFunc("/", handleGetTasks).Methods(http.MethodGet)
+	tasksRouter.HandleFunc("/", handlePostTask).Methods(http.MethodPost)
 	manager.addPathToMap(fmt.Sprintf("%s/", tasksBasePath), func (user *users.User, _ string) bool {
 		return user.Roles.Contains(users.Admin)
 	})

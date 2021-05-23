@@ -67,15 +67,19 @@ func handleTaskResponses(agentId string, payload []byte) {
 		logger.Warnf("task responses handler: no endpoint for agent with id == %s", agentId)
 		return
 	}
-	taskResponsesFromAgent := make([]*submitws.TaskResponse, 0, 0)
+	taskResponsesFromAgent := &submitws.TaskResponses{}
 	if err := json.Unmarshal(payload, taskResponsesFromAgent); err != nil {
 		logger.WithError(err).Error("task responses handler: error parsing task response message")
 		return
 	}
-	for _, taskResponseFromAgent := range taskResponsesFromAgent {
+	for _, taskResponseFromAgent := range taskResponsesFromAgent.Responses {
 		task, err := agents.GetTask(taskResponseFromAgent.Task)
 		if err != nil {
 			logger.WithError(err).Errorf("task responses handler: received response for task with id == %s but it doesn't exist", taskResponseFromAgent.Task)
+			continue
+		}
+		if task.Status != agents.TaskStatusInProgress {
+			logger.Warnf("ignoring response for task with id == '%s' as it is not in progress: %s", task.ID, string(payload))
 			continue
 		}
 		taskResponse := &agents.TaskResponse{

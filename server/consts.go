@@ -19,7 +19,7 @@ const (
 	serverTimeout			= 15 * time.Second
 
 	numTaskProcWorkers		= 10
-	taskProcessingTimeout	= 2 * time.Minute
+	taskProcessingTimeout	= 120
 	taskId					= "taskId"
 	taskRespId				= "taskRespId"
 )

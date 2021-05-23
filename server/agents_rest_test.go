@@ -3,8 +3,10 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/DAv10195/submit_commons"
+	"github.com/DAv10195/submit_commons/containers"
 	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
@@ -143,9 +145,16 @@ func TestTaskRestHandlers(t *testing.T) {
 		ResponseHandler: "mock",
 		ExecTimeout: 1,
 		Status: agents.TaskStatusDone,
+		Dependencies: containers.NewStringSet(),
 	}
 	if err := db.Update(db.System, task); err != nil {
-		t.Fatalf("error updating db with agent for test: %v", err)
+		t.Fatalf("error updating db with task for test: %v", err)
+	}
+	task.ID = ""
+	task.Status = 0
+	taskBytes, err := json.Marshal(task)
+	if err != nil {
+		t.Fatalf("error seralizing task for test: %v", err)
 	}
 	if _, err := users.NewUserBuilder(db.System, true).WithUserName(users.Secretary).WithPassword(users.Secretary).WithRoles(users.Secretary).Build(); err != nil {
 		t.Fatalf("error creating secretary user for agent rest test: %v", err)
@@ -193,7 +202,7 @@ func TestTaskRestHandlers(t *testing.T) {
 		},
 		{
 			"test get all tasks invalid method",
-			http.MethodPost,
+			http.MethodDelete,
 			allTasksPath,
 			users.Secretary,
 			[]byte("bad"),
@@ -206,6 +215,14 @@ func TestTaskRestHandlers(t *testing.T) {
 			users.Secretary,
 			[]byte("bad"),
 			http.StatusMethodNotAllowed,
+		},
+		{
+			"post task",
+			http.MethodPost,
+			allTasksPath,
+			users.Admin,
+			taskBytes,
+			http.StatusAccepted,
 		},
 	}
 	router := mux.NewRouter()

@@ -90,7 +90,7 @@ type TaskBuilder struct {
 }
 
 func NewTaskBuilder(asUser string, withDbUpdate bool) *TaskBuilder {
-	return &TaskBuilder{asUser: asUser, withDbUpdate: withDbUpdate, ExecTimeout: -1, Dependencies: containers.NewStringSet(), Labels: make(map[string]interface{})}
+	return &TaskBuilder{asUser: asUser, withDbUpdate: withDbUpdate, Dependencies: containers.NewStringSet(), Labels: make(map[string]interface{})}
 }
 
 func (b *TaskBuilder) WithOsType(osType string) *TaskBuilder {
@@ -128,11 +128,10 @@ func (b *TaskBuilder) WithAgent(agentId string) *TaskBuilder {
 	return b
 }
 
-func (b *TaskBuilder) withLabel(name string, value interface{}) *TaskBuilder {
+func (b *TaskBuilder) WithLabel(name string, value interface{}) *TaskBuilder {
 	b.Labels[name] = value
 	return b
 }
-
 
 func (b *TaskBuilder) Build() (*Task, error) {
 	if b.Command == "" {
@@ -141,8 +140,8 @@ func (b *TaskBuilder) Build() (*Task, error) {
 	if b.ResponseHandler == "" {
 		return nil, &submiterr.ErrInsufficientData{Message: "task can't have an empty response handler"}
 	}
-	if b.ExecTimeout < 0 {
-		return nil,  &submiterr.ErrInsufficientData{Message: "task must have a non-negative timeout (seconds) value"}
+	if b.ExecTimeout <= 0 {
+		return nil,  &submiterr.ErrInsufficientData{Message: "task must have a positive timeout (seconds) value"}
 	}
 	task := &Task{
 		ID: commons.GenerateUniqueId(),

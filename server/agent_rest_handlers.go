@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
+	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -96,4 +97,24 @@ func handleGetTaskResponse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeElem(w, r, http.StatusOK, requestedTaskResponse)
+}
+
+func handlePostTask(w http.ResponseWriter, r *http.Request) {
+	task := &agents.Task{}
+	if err := json.NewDecoder(r.Body).Decode(task); err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, err)
+		return
+	}
+	builder := agents.NewTaskBuilder(r.Context().Value(authenticatedUser).(*users.User).UserName, true)
+	builder.WithOsType(task.OsType).WithArchitecture(task.Architecture).WithCommand(task.Command).WithResponseHandler(task.ResponseHandler).
+		WithExecTimeout(task.ExecTimeout).WithDependencies(task.Dependencies.Slice()...).WithAgent(task.Agent)
+	for name, value := range task.Labels {
+		builder.WithLabel(name, value)
+	}
+	task, err := builder.Build()
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	writeResponse(w, r, http.StatusAccepted, &Response{"task created successfully"})
 }
