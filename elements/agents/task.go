@@ -35,6 +35,7 @@ type Task struct {
 	Status			int						`json:"status"`
 	Description		string					`json:"description"`
 	Agent			string					`json:"agent"`
+	Labels			map[string]interface{}	`json:"labels"`
 }
 
 func (t *Task) Key() []byte {
@@ -83,12 +84,13 @@ type TaskBuilder struct {
 	ExecTimeout		int
 	Dependencies	*containers.StringSet
 	Agent			string
+	Labels			map[string]interface{}
 	asUser			string
 	withDbUpdate	bool
 }
 
 func NewTaskBuilder(asUser string, withDbUpdate bool) *TaskBuilder {
-	return &TaskBuilder{asUser: asUser, withDbUpdate: withDbUpdate, ExecTimeout: -1, Dependencies: containers.NewStringSet()}
+	return &TaskBuilder{asUser: asUser, withDbUpdate: withDbUpdate, ExecTimeout: -1, Dependencies: containers.NewStringSet(), Labels: make(map[string]interface{})}
 }
 
 func (b *TaskBuilder) WithOsType(osType string) *TaskBuilder {
@@ -126,6 +128,12 @@ func (b *TaskBuilder) WithAgent(agentId string) *TaskBuilder {
 	return b
 }
 
+func (b *TaskBuilder) withLabel(name string, value interface{}) *TaskBuilder {
+	b.Labels[name] = value
+	return b
+}
+
+
 func (b *TaskBuilder) Build() (*Task, error) {
 	if b.Command == "" {
 		return nil, &submiterr.ErrInsufficientData{Message: "task can't have an empty command"}
@@ -146,6 +154,7 @@ func (b *TaskBuilder) Build() (*Task, error) {
 		Dependencies: b.Dependencies,
 		Status: TaskStatusReady,
 		Agent: b.Agent,
+		Labels: b.Labels,
 	}
 	if b.withDbUpdate {
 		if err := db.Update(b.asUser, task); err != nil {

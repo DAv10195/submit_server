@@ -173,7 +173,7 @@ func TestTasksMonitor(t *testing.T) {
 	type mockResp struct {
 		Message string `json:"message"`
 	}
-	agentTaskRespHandlers["mock"] = func (payload []byte) error {
+	agentTaskRespHandlers["mock"] = func (payload []byte, _ map[string]interface{}) error {
 		mr := &mockResp{}
 		if err := json.Unmarshal(payload, mr); err != nil {
 			return err

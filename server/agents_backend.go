@@ -286,7 +286,7 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 		m.updateTaskWithDescriptionToErr(task, "response handler not found")
 		return
 	}
-	if err := handler([]byte(resp.Payload)); err != nil {
+	if err := handler([]byte(resp.Payload), task.Labels); err != nil {
 		logger.WithError(err).Errorf("agents tasks monitor: error handling response for task with id == %s", task.ID)
 		m.updateTaskWithDescriptionToErr(task, err.Error())
 		return
