@@ -22,4 +22,6 @@ const (
 	Tests						= "tests"
 	Appeals						= "appeals"
 	Agents						= "agents"
+	Tasks						= "tasks"
+	TaskResponses				= "task_responses"
 )

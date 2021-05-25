@@ -86,7 +86,7 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{"users created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{"users created successfully"})
 }
 
 // delete the user with the given name
@@ -150,7 +150,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("user \"%s\" updated successfully", requestedUserName)})
+	writeResponse(w, r, http.StatusAccepted, &Response{fmt.Sprintf("user \"%s\" updated successfully", requestedUserName)})
 }
 
 // configure the users router

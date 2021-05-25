@@ -2,43 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	commons "github.com/DAv10195/submit_commons"
 	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
-	"github.com/gorilla/mux"
-	"net/http"
 	"time"
 )
-
-func handleGetAgents(w http.ResponseWriter, r *http.Request) {
-	var elements []db.IBucketElement
-	if err := db.QueryBucket([]byte(db.Agents), func(_, elementBytes []byte) error {
-		agent := &agents.Agent{}
-		if err := json.Unmarshal(elementBytes, agent); err != nil {
-			return err
-		}
-		elements = append(elements, agent)
-		return nil
-	}); err != nil {
-		writeErrResp(w, r, http.StatusInternalServerError, err)
-		return
-	}
-	writeElements(w, r, http.StatusOK, elements)
-}
-
-func handleGetAgent(w http.ResponseWriter, r *http.Request) {
-	requestedAgentId := mux.Vars(r)[agentId]
-	requestedAgent, err := agents.Get(requestedAgentId)
-	if err != nil {
-		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
-			writeErrResp(w, r, http.StatusNotFound, err)
-		} else {
-			writeErrResp(w, r, http.StatusInternalServerError, err)
-		}
-		return
-	}
-	writeElem(w, r, http.StatusOK, requestedAgent)
-}
 
 type agentMessageHandler func(string, []byte)
 
@@ -91,6 +60,44 @@ func handleKeepalive(agentId string, payload []byte) {
 	}
 }
 
+func handleTaskResponses(agentId string, payload []byte) {
+	logger.Debugf("task responses handler: received task response message [ %s ] from agent with id == %s", string(payload), agentId)
+	var endpoint *agentEndpoint
+	if endpoint = agentEndpoints.getEndpoint(agentId); endpoint == nil {
+		logger.Warnf("task responses handler: no endpoint for agent with id == %s", agentId)
+		return
+	}
+	taskResponsesFromAgent := &submitws.TaskResponses{}
+	if err := json.Unmarshal(payload, taskResponsesFromAgent); err != nil {
+		logger.WithError(err).Error("task responses handler: error parsing task response message")
+		return
+	}
+	for _, taskResponseFromAgent := range taskResponsesFromAgent.Responses {
+		task, err := agents.GetTask(taskResponseFromAgent.Task)
+		if err != nil {
+			logger.WithError(err).Errorf("task responses handler: received response for task with id == %s but it doesn't exist", taskResponseFromAgent.Task)
+			continue
+		}
+		if task.Status != agents.TaskStatusInProgress {
+			logger.Warnf("ignoring response for task with id == '%s' as it is not in progress: %s", task.ID, string(payload))
+			continue
+		}
+		taskResponse := &agents.TaskResponse{
+			ID:             commons.GenerateUniqueId(),
+			Payload:        taskResponseFromAgent.Payload,
+			Handler:        taskResponseFromAgent.Handler,
+			Task:           taskResponseFromAgent.Task,
+			ExecStatus:		taskResponseFromAgent.Status,
+		}
+		task.TaskResponse = taskResponse.ID
+		task.Status = agents.TaskStatusDone
+		if err := db.Update(endpoint.user, taskResponse, task); err != nil {
+			logger.WithError(err).Error("task responses handler: error updating task and response")
+		}
+	}
+}
+
 func init() {
 	agentMsgHandlers[submitws.MessageTypeKeepalive] = handleKeepalive
+	agentMsgHandlers[submitws.MessageTypeTaskResponses] = handleTaskResponses
 }

@@ -17,4 +17,9 @@ const (
 	endpoint				= "endpoint"
 
 	serverTimeout			= 15 * time.Second
+
+	numTaskProcWorkers		= 10
+	taskProcessingTimeout	= 120
+	taskId					= "taskId"
+	taskRespId				= "taskRespId"
 )
