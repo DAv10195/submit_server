@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
 	"github.com/DAv10195/submit_server/elements/users"
@@ -105,6 +106,9 @@ func TestRestPagination(t *testing.T) {
 	if agentId != "agent1" {
 		t.Fatalf("expected agent1 in reponse but got %s", agentId)
 	}
+	if w.Header().Get(submithttp.ElementsLeftToProcess) != trueStr {
+		t.Fatalf("expected header %s to be %s but it is %s", submithttp.ElementsLeftToProcess, trueStr, w.Header().Get(submithttp.ElementsLeftToProcess))
+	}
 	r, err = http.NewRequest(http.MethodGet, "/agents/?limit=1&after_id=1", nil)
 	if err != nil {
 		t.Fatalf("error creating http request for test: %v", err)
@@ -125,6 +129,9 @@ func TestRestPagination(t *testing.T) {
 	agentId = respBody.Agents[0].ID
 	if agentId != "agent2" {
 		t.Fatalf("expected agent1 in reponse but got %s", agentId)
+	}
+	if w.Header().Get(submithttp.ElementsLeftToProcess) != trueStr {
+		t.Fatalf("expected header %s to be %s but it is %s", submithttp.ElementsLeftToProcess, trueStr, w.Header().Get(submithttp.ElementsLeftToProcess))
 	}
 	r, err = http.NewRequest(http.MethodGet, "/agents/?limit=1&after_id=2", nil)
 	if err != nil {
@@ -147,6 +154,9 @@ func TestRestPagination(t *testing.T) {
 	if agentId != "agent3" {
 		t.Fatalf("expected agent1 in reponse but got %s", agentId)
 	}
+	if w.Header().Get(submithttp.ElementsLeftToProcess) != trueStr {
+		t.Fatalf("expected header %s to be %s but it is %s", submithttp.ElementsLeftToProcess, trueStr, w.Header().Get(submithttp.ElementsLeftToProcess))
+	}
 	r, err = http.NewRequest(http.MethodGet, "/agents/?limit=1&after_id=3", nil)
 	if err != nil {
 		t.Fatalf("error creating http request for test: %v", err)
@@ -168,21 +178,7 @@ func TestRestPagination(t *testing.T) {
 	if agentId != "agent4" {
 		t.Fatalf("expected agent1 in reponse but got %s", agentId)
 	}
-	r, err = http.NewRequest(http.MethodGet, "/agents/?limit=1&after_id=4", nil)
-	if err != nil {
-		t.Fatalf("error creating http request for test: %v", err)
-	}
-	r.SetBasicAuth(users.Admin, users.Admin)
-	w = httptest.NewRecorder()
-	router.ServeHTTP(w, r)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status code %d but got %d", http.StatusOK, w.Code)
-	}
-	respBody = &body{}
-	if err := json.NewDecoder(w.Body).Decode(respBody); err != nil {
-		t.Fatalf("error parsing response body for test: %v", err)
-	}
-	if respBody.Agents != nil {
-		t.Fatalf("expected response elements to be null but it is not: %v", respBody.Agents)
+	if w.Header().Get(submithttp.ElementsLeftToProcess) != "" {
+		t.Fatalf("expected header %s to be empty but it is %s", submithttp.ElementsLeftToProcess, w.Header().Get(submithttp.ElementsLeftToProcess))
 	}
 }

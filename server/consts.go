@@ -22,4 +22,6 @@ const (
 	taskProcessingTimeout	= 120
 	taskId					= "taskId"
 	taskRespId				= "taskRespId"
+
+	trueStr					= "true"
 )

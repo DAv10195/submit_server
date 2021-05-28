@@ -61,8 +61,12 @@ func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
 		}
 		return nil
 	}); err != nil {
-		writeErrResp(w, r, http.StatusInternalServerError, err)
-		return
+		if _, ok := err.(*db.ErrElementsLeftToProcess); ok {
+			w.Header().Set(submithttp.ElementsLeftToProcess, trueStr)
+		} else {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
 	}
 	writeElements(w, r, http.StatusOK, elements)
 }

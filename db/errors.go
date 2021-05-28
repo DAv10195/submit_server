@@ -33,3 +33,9 @@ type ErrStopQuery struct {}
 func (e *ErrStopQuery) Error() string {
 	return ""
 }
+
+type ErrElementsLeftToProcess struct {}
+
+func (e *ErrElementsLeftToProcess) Error() string {
+	return ""
+}
