@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/DAv10195/submit_commons/errors"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/elements/users"
@@ -37,13 +38,27 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 
 // return information about all users
 func handleGetAllUsers(w http.ResponseWriter, r *http.Request) {
+	params, err := submithttp.PagingParamsFromRequest(r)
+	if err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, fmt.Errorf("error parsing query params: %v", err))
+		return
+	}
 	var elements []db.IBucketElement
+	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.Users), func(_, elementBytes []byte) error {
+		elementsIndex++
+		if elementsIndex <= params.AfterId {
+			return nil
+		}
 		user := &users.User{}
 		if err := json.Unmarshal(elementBytes, user); err != nil {
 			return err
 		}
 		elements = append(elements, user)
+		elementsCount++
+		if elementsCount == params.Limit {
+			return &db.ErrStopQuery{}
+		}
 		return nil
 	}); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)

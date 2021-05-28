@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
 	"github.com/DAv10195/submit_server/elements/users"
@@ -10,13 +12,27 @@ import (
 )
 
 func handleGetAgents(w http.ResponseWriter, r *http.Request) {
+	params, err := submithttp.PagingParamsFromRequest(r)
+	if err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, fmt.Errorf("error parsing query params: %v", err))
+		return
+	}
+	var elementsCount, elementsIndex int64
 	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Agents), func(_, elementBytes []byte) error {
+		elementsIndex++
+		if elementsIndex <= params.AfterId {
+			return nil
+		}
 		agent := &agents.Agent{}
 		if err := json.Unmarshal(elementBytes, agent); err != nil {
 			return err
 		}
 		elements = append(elements, agent)
+		elementsCount++
+		if elementsCount == params.Limit {
+			return &db.ErrStopQuery{}
+		}
 		return nil
 	}); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
@@ -40,13 +56,27 @@ func handleGetAgent(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetTasks(w http.ResponseWriter, r *http.Request) {
+	params, err := submithttp.PagingParamsFromRequest(r)
+	if err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, fmt.Errorf("error parsing query params: %v", err))
+		return
+	}
+	var elementsCount, elementsIndex int64
 	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Tasks), func(_, elementBytes []byte) error {
+		elementsIndex++
+		if elementsIndex <= params.AfterId {
+			return nil
+		}
 		task := &agents.Task{}
 		if err := json.Unmarshal(elementBytes, task); err != nil {
 			return err
 		}
 		elements = append(elements, task)
+		elementsCount++
+		if elementsCount == params.Limit {
+			return &db.ErrStopQuery{}
+		}
 		return nil
 	}); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
@@ -70,13 +100,27 @@ func handleGetTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetTaskResponses(w http.ResponseWriter, r *http.Request) {
+	params, err := submithttp.PagingParamsFromRequest(r)
+	if err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, fmt.Errorf("error parsing query params: %v", err))
+		return
+	}
+	var elementsCount, elementsIndex int64
 	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.TaskResponses), func(_, elementBytes []byte) error {
+		elementsIndex++
+		if elementsIndex <= params.AfterId {
+			return nil
+		}
 		taskResponse := &agents.TaskResponse{}
 		if err := json.Unmarshal(elementBytes, taskResponse); err != nil {
 			return err
 		}
 		elements = append(elements, taskResponse)
+		elementsCount++
+		if elementsCount == params.Limit {
+			return &db.ErrStopQuery{}
+		}
 		return nil
 	}); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)

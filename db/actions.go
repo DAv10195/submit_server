@@ -123,6 +123,9 @@ func QueryBucket(bucket []byte, process BucketElementProcessingFunc) error {
 		dbCursor := dbBucket.Cursor()
 		for elementKey, elementBytes := dbCursor.First(); elementKey != nil; elementKey, elementBytes = dbCursor.Next() {
 			if err := process(elementKey, elementBytes); err != nil {
+				if _, ok := err.(*ErrStopQuery); ok {
+					return nil
+				}
 				logger.WithError(err).Errorf("error querying \"%s\" bucket", string(bucket))
 				return err
 			}

@@ -27,3 +27,9 @@ type ErrKeyExistsInBucket struct {
 func (e *ErrKeyExistsInBucket) Error() string {
 	return fmt.Sprintf("\"%s\" key already exists in bucket \"%s\"", e.Key, e.Bucket)
 }
+
+type ErrStopQuery struct {}
+
+func (e *ErrStopQuery) Error() string {
+	return ""
+}
