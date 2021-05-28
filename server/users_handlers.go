@@ -178,15 +178,15 @@ func initUsersRouter(r *mux.Router, manager *authManager) {
 	usersRouter := r.PathPrefix(usersBasePath).Subrouter()
 	usersRouter.HandleFunc("/", handleGetAllUsers).Methods(http.MethodGet)
 	usersRouter.HandleFunc("/", handleRegisterUsers).Methods(http.MethodPost)
-	manager.addPathToMap(fmt.Sprintf("%s/", usersBasePath), func (user *users.User, _ string) bool {
+	manager.addPathToMap(fmt.Sprintf("%s/", usersBasePath), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin)
 	})
 	specificUserPath := fmt.Sprintf("/{%s}", userName)
 	usersRouter.HandleFunc(specificUserPath, handleGetUser).Methods(http.MethodGet)
 	usersRouter.HandleFunc(specificUserPath, handleDelUser).Methods(http.MethodDelete)
 	usersRouter.HandleFunc(specificUserPath, handleUpdateUser).Methods(http.MethodPut)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", usersBasePath)), func (user *users.User, path string) bool {
-		isSelfRequest := user.UserName == path[strings.LastIndex(path, "/") + 1 : ] // if the user is accessing his own user data
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", usersBasePath)), func (user *users.User, r *http.Request) bool {
+		isSelfRequest := user.UserName == r.URL.Path[strings.LastIndex(r.URL.Path, "/") + 1 : ] // if the user is accessing his own user data
 		return isSelfRequest || user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin)
 	})
 }

@@ -24,4 +24,7 @@ const (
 	taskRespId				= "taskRespId"
 
 	trueStr					= "true"
+
+	courseNumber			= "courseNumber"
+	courseYear				= "courseYear"
 )

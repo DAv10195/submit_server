@@ -466,36 +466,36 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 	agentsBasePath := fmt.Sprintf("/%s", submitws.Agents)
 	agentsRouter := r.PathPrefix(agentsBasePath).Subrouter()
 	agentsRouter.HandleFunc(fmt.Sprintf("/%s", endpoint), agentEndpoints.agentsEndpoint).Methods(http.MethodGet)
-	manager.addPathToMap(fmt.Sprintf("%s/%s", agentsBasePath, endpoint), func (user *users.User, _ string) bool {
+	manager.addPathToMap(fmt.Sprintf("%s/%s", agentsBasePath, endpoint), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Agent) || user.Roles.Contains(users.Admin)
 	})
 	agentsRouter.HandleFunc("/", handleGetAgents).Methods(http.MethodGet)
-	manager.addPathToMap(fmt.Sprintf("%s/", agentsBasePath), func (user *users.User, _ string) bool {
+	manager.addPathToMap(fmt.Sprintf("%s/", agentsBasePath), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	agentsRouter.HandleFunc(fmt.Sprintf("/{%s}", agentId), handleGetAgent).Methods(http.MethodGet)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", agentsBasePath)), func (user *users.User, _ string) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", agentsBasePath)), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	tasksBasePath := fmt.Sprintf("/%s", db.Tasks)
 	tasksRouter := r.PathPrefix(tasksBasePath).Subrouter()
 	tasksRouter.HandleFunc("/", handleGetTasks).Methods(http.MethodGet)
 	tasksRouter.HandleFunc("/", handlePostTask).Methods(http.MethodPost)
-	manager.addPathToMap(fmt.Sprintf("%s/", tasksBasePath), func (user *users.User, _ string) bool {
+	manager.addPathToMap(fmt.Sprintf("%s/", tasksBasePath), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	tasksRouter.HandleFunc(fmt.Sprintf("/{%s}", taskId), handleGetTask).Methods(http.MethodGet)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", tasksBasePath)), func (user *users.User, _ string) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", tasksBasePath)), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	taskResponsesBasePath := fmt.Sprintf("/%s", db.TaskResponses)
 	taskResponsesRouter := r.PathPrefix(taskResponsesBasePath).Subrouter()
 	taskResponsesRouter.HandleFunc("/", handleGetTaskResponses).Methods(http.MethodGet)
-	manager.addPathToMap(fmt.Sprintf("%s/", taskResponsesBasePath), func (user *users.User, _ string) bool {
+	manager.addPathToMap(fmt.Sprintf("%s/", taskResponsesBasePath), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	taskResponsesRouter.HandleFunc(fmt.Sprintf("/{%s}", taskRespId), handleGetTaskResponse).Methods(http.MethodGet)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", taskResponsesBasePath)), func (user *users.User, _ string) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", taskResponsesBasePath)), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	wg.Add(2)
