@@ -195,6 +195,14 @@ func TestCoursesHandlers(t *testing.T) {
 			[]byte(""),
 			testUsers[users.Admin],
 		},
+		{
+			"test get non existent course",
+			http.MethodGet,
+			fmt.Sprintf("/%s/%d/%d", db.Courses, 1234, testCourses["course2"].Year),
+			http.StatusNotFound,
+			[]byte(""),
+			testUsers[users.StandardUser],
+		},
 	}
 	router := mux.NewRouter()
 	am := NewAuthManager()
