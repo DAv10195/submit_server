@@ -90,6 +90,11 @@ func TestAuthorizationMiddleware(t *testing.T){
 			panic(err)
 		}
 	})
+	router.HandleFunc("/get/{suffix}", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write([]byte("\"message\": \"hello from /get/")); err != nil {
+			panic(err)
+		}
+	})
 	// use admin user for positive test.
 	request, err := http.NewRequest("", "/", nil)
 	if err != nil {
@@ -140,20 +145,43 @@ func TestAuthorizationMiddleware(t *testing.T){
 	if writer.Code != http.StatusForbidden {
 		t.Fatalf("expected status %d but got %d", http.StatusForbidden, writer.Code)
 	}
+	request, err = http.NewRequest(http.MethodPost, "/get/test", nil)
+	if err != nil {
+		t.Fatalf("error creating http request: %v", err)
+	}
+	request.SetBasicAuth(users.Admin, users.Admin)
+	writer = httptest.NewRecorder()
+	router.ServeHTTP(writer, request)
+	if writer.Code != http.StatusForbidden {
+		t.Fatalf("expected status %d but got %d", http.StatusForbidden, writer.Code)
+	}
+	request, err = http.NewRequest(http.MethodGet, "/get/test", nil)
+	if err != nil {
+		t.Fatalf("error creating http request: %v", err)
+	}
+	request.SetBasicAuth(users.Admin, users.Admin)
+	writer = httptest.NewRecorder()
+	router.ServeHTTP(writer, request)
+	if writer.Code != http.StatusOK {
+		t.Fatalf("expected status %d but got %d", http.StatusOK, writer.Code)
+	}
 }
 
 func initTestAuthManager(authManager *authManager){
-	authManager.addPathToMap("/", func(user *users.User, _ string) bool{
+	authManager.addPathToMap("/", func(user *users.User, _ *http.Request) bool{
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
 		return false
 	})
 	regex := regexp.MustCompile("/regex/.")
-	authManager.addRegex(regex, func(user *users.User, _ string) bool{
+	authManager.addRegex(regex, func(user *users.User, _ *http.Request) bool{
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
 		return false
+	})
+	authManager.addRegex(regexp.MustCompile("/get/."), func(user *users.User, r *http.Request) bool {
+		return user.Roles.Contains(users.Admin) && r.Method == http.MethodGet
 	})
 }

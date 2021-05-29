@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-type authorizationFunc func(*users.User, string) bool
+type authorizationFunc func(*users.User, *http.Request) bool
 
 type regexpHandler struct {
 	regexp	*regexp.Regexp
@@ -32,7 +32,7 @@ func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler {
 		handler := a.authMap[path]
 		// if path is in the map invoke the handler.
 		if handler != nil {
-			if handler(user, path) {
+			if handler(user, r) {
 				next.ServeHTTP(w, r)
 			} else {
 				writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
@@ -41,7 +41,7 @@ func (a *authManager) authorizationMiddleware(next http.Handler) http.Handler {
 		}
 		// well, no direct handler, lets try matching regular expressions to find a handler
 		for _, regExpHandler := range a.regExpHandlers {
-			if regExpHandler.regexp.MatchString(path) && !regExpHandler.invoke(user, path) {
+			if regExpHandler.regexp.MatchString(path) && !regExpHandler.invoke(user, r) {
 				writeStrErrResp(w, r, http.StatusForbidden, accessDenied)
 				return
 			}
