@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/courses"
 	"github.com/DAv10195/submit_server/elements/users"
@@ -51,6 +52,8 @@ func getDbForCoursesHandlersTest() (map[string]*users.User, map[string]*courses.
 func TestCoursesHandlers(t *testing.T) {
 	testUsers, testCourses, cleanup := getDbForCoursesHandlersTest()
 	defer cleanup()
+	stdUserHeader, adminHeaderMap := make(map[string]string), make(map[string]string)
+	stdUserHeader[submithttp.ForSubmitUser], adminHeaderMap[submithttp.ForSubmitUser] = users.StandardUser, users.Admin
 	testCases := []struct{
 		name	string
 		method	string
@@ -58,6 +61,7 @@ func TestCoursesHandlers(t *testing.T) {
 		status	int
 		data	[]byte
 		reqUser	*users.User
+		headers	map[string]string
 	}{
 		{
 			"test get all courses with admin",
@@ -66,6 +70,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.Admin],
+			nil,
 		},
 		{
 			"test get all courses with secretary",
@@ -74,6 +79,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.Secretary],
+			nil,
 		},
 		{
 			"test get all courses with std_user",
@@ -82,6 +88,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusForbidden,
 			[]byte(""),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test create course with admin",
@@ -90,6 +97,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusAccepted,
 			[]byte("{\"name\":\"course3\",\"number\":3}"),
 			testUsers[users.Admin],
+			nil,
 		},
 		{
 			"test create course with secretary",
@@ -98,6 +106,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusAccepted,
 			[]byte("{\"name\":\"course4\",\"number\":4}"),
 			testUsers[users.Secretary],
+			nil,
 		},
 		{
 			"test create course with std_user",
@@ -106,6 +115,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusForbidden,
 			[]byte("{\"name\":\"course5\",\"number\":5}"),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test get course with admin",
@@ -114,6 +124,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.Admin],
+			nil,
 		},
 		{
 			"test get course with secretary",
@@ -122,6 +133,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.Secretary],
+			nil,
 		},
 		{
 			"test get course with std_user as student",
@@ -130,6 +142,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test get course with std_user as staff",
@@ -138,6 +151,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test update course with std_user as staff",
@@ -146,6 +160,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusAccepted,
 			[]byte(fmt.Sprintf("{\"name\":\"%s\",\"number\":%d,\"year\":%d}", testCourses["course2"].Name, testCourses["course2"].Number, testCourses["course2"].Year)),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test update course with std_user as student",
@@ -154,6 +169,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusForbidden,
 			[]byte(fmt.Sprintf("{\"name\":\"%s\",\"number\":%d,\"year\":%d}", testCourses["course1"].Name, testCourses["course1"].Number, testCourses["course1"].Year)),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test update course with admin",
@@ -162,6 +178,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusAccepted,
 			[]byte(fmt.Sprintf("{\"name\":\"%s\",\"number\":%d,\"year\":%d}", testCourses["course1"].Name, testCourses["course1"].Number, testCourses["course1"].Year)),
 			testUsers[users.Admin],
+			nil,
 		},
 		{
 			"test update course with secretary",
@@ -170,6 +187,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusAccepted,
 			[]byte(fmt.Sprintf("{\"name\":\"%s\",\"number\":%d,\"year\":%d}", testCourses["course1"].Name, testCourses["course1"].Number, testCourses["course1"].Year)),
 			testUsers[users.Secretary],
+			nil,
 		},
 		{
 			"test delete course with std_user",
@@ -178,6 +196,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusForbidden,
 			[]byte(""),
 			testUsers[users.StandardUser],
+			nil,
 		},
 		{
 			"test delete course with secretary",
@@ -186,6 +205,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.Secretary],
+			nil,
 		},
 		{
 			"test delete course with admin",
@@ -194,6 +214,7 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusOK,
 			[]byte(""),
 			testUsers[users.Admin],
+			nil,
 		},
 		{
 			"test get non existent course",
@@ -202,6 +223,34 @@ func TestCoursesHandlers(t *testing.T) {
 			http.StatusNotFound,
 			[]byte(""),
 			testUsers[users.StandardUser],
+			nil,
+		},
+		{
+			"test get std_user courses",
+			http.MethodGet,
+			fmt.Sprintf("/%s/", db.Courses),
+			http.StatusOK,
+			[]byte(""),
+			testUsers[users.StandardUser],
+			stdUserHeader,
+		},
+		{
+			"test get std_user courses with admin",
+			http.MethodGet,
+			fmt.Sprintf("/%s/", db.Courses),
+			http.StatusOK,
+			[]byte(""),
+			testUsers[users.Admin],
+			stdUserHeader,
+		},
+		{
+			"test get admin courses with stdUser",
+			http.MethodGet,
+			fmt.Sprintf("/%s/", db.Courses),
+			http.StatusForbidden,
+			[]byte(""),
+			testUsers[users.StandardUser],
+			adminHeaderMap,
 		},
 	}
 	router := mux.NewRouter()
@@ -222,6 +271,11 @@ func TestCoursesHandlers(t *testing.T) {
 				t.FailNow()
 			}
 			r.SetBasicAuth(testCase.reqUser.UserName, password)
+			if testCase.headers != nil {
+				for k, v := range testCase.headers {
+					r.Header.Set(k, v)
+				}
+			}
 			w := httptest.NewRecorder()
 			router.ServeHTTP(w, r)
 			if w.Code != testCase.status {

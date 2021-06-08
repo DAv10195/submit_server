@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/users"
@@ -37,6 +38,14 @@ func initDbForUsersHandlersTest() (map[string]*users.User, func()) {
 
 func TestUsersHandlers(t *testing.T) {
 	testUsers, cleanup := initDbForUsersHandlersTest()
+	testUsersBytes := make(map[string][]byte)
+	for k, v := range testUsers {
+		userBytes, err := json.Marshal(v)
+		if err != nil {
+			panic(err)
+		}
+		testUsersBytes[k] = userBytes
+	}
 	defer cleanup()
 	testCases := []struct{
 		name	string
@@ -131,7 +140,7 @@ func TestUsersHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/%s", db.Users, users.StandardUser),
 			http.StatusAccepted,
-			[]byte("{\"user_name\":\"std_user\",\"password\":\"std_user\",\"email\":\"std_user@submit.com\",\"roles\":{\"elements\":{\"std_user\":{}}},\"courses_as_student\":{\"elements\":{}},\"courses_as_staff\":{\"elements\":{}}}"),
+			testUsersBytes[users.StandardUser],
 			testUsers[users.StandardUser],
 		},
 		{
@@ -139,7 +148,7 @@ func TestUsersHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/%s", db.Users, users.Admin),
 			http.StatusForbidden,
-			[]byte("{\"user_name\":\"admin\",\"password\":\"admin\",\"email\":\"admin@submit.com\",\"roles\":{\"elements\":{\"admin\":{}}},\"courses_as_student\":{\"elements\":{}},\"courses_as_staff\":{\"elements\":{}}}"),
+			testUsersBytes[users.Admin],
 			testUsers[users.StandardUser],
 		},
 		{
@@ -147,7 +156,7 @@ func TestUsersHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/%s", db.Users, users.StandardUser),
 			http.StatusAccepted,
-			[]byte("{\"user_name\":\"std_user\",\"password\":\"std_user\",\"email\":\"std_user@submit.com\",\"roles\":{\"elements\":{\"std_user\":{}}},\"courses_as_student\":{\"elements\":{}},\"courses_as_staff\":{\"elements\":{}}}"),
+			testUsersBytes[users.StandardUser],
 			testUsers[users.Admin],
 		},
 		{
@@ -155,7 +164,7 @@ func TestUsersHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/%s", db.Users, users.StandardUser),
 			http.StatusAccepted,
-			[]byte("{\"user_name\":\"std_user\",\"password\":\"std_user\",\"email\":\"std_user@submit.com\",\"roles\":{\"elements\":{\"std_user\":{}}},\"courses_as_student\":{\"elements\":{}},\"courses_as_staff\":{\"elements\":{}}}"),
+			testUsersBytes[users.StandardUser],
 			testUsers[users.Secretary],
 		},
 		{
