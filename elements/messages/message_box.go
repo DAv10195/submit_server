@@ -10,8 +10,8 @@ import (
 // message box
 type MessageBox struct {
 	db.ABucketElement
-	ID			string
-	Messages	*containers.StringSet
+	ID			string					`json:"id"`
+	Messages	*containers.StringSet	`json:"messages"`
 }
 
 func (m *MessageBox) Key() []byte {

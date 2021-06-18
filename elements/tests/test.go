@@ -24,12 +24,12 @@ const (
 // test
 type Test struct {
 	db.ABucketElement
-	Name			string
-	State			int
-	Files			*containers.StringSet
-	AssignmentDef	string
-	RunsOn			int
-	MessageBox		string
+	Name			string					`json:"name"`
+	State			int						`json:"state"`
+	Files			*containers.StringSet	`json:"files"`
+	AssignmentDef	string					`json:"assignment_def"`
+	RunsOn			int						`json:"runs_on"`
+	MessageBox		string					`json:"message_box"`
 }
 
 func (t *Test) Key() []byte {

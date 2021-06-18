@@ -97,6 +97,9 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+		if user.Roles.NumberOfElements() == 0 {
+			user.Roles.Add(users.StandardUser)
+		}
 		messageBox := messages.NewMessageBox()
 		user.MessageBox = messageBox.ID
 		elementsToCreate = append(elementsToCreate, messageBox, user)

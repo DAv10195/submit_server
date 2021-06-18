@@ -15,9 +15,9 @@ const (
 // appeal
 type Appeal struct {
 	db.ABucketElement
-	AssignmentInstance	string
-	State				int
-	MessageBox			string
+	AssignmentInstance	string	`json:"assignment_instance"`
+	State				int		`json:"state"`
+	MessageBox			string	`json:"message_box"`
 }
 
 func Get(id string) (*Appeal, error) {
@@ -42,6 +42,32 @@ func Delete(appeal *Appeal) error {
 		return err
 	}
 	return db.Delete(appeal)
+}
+
+func New(assInst string, asUser string, withDbUpdate bool) (*Appeal, error) {
+	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentInstances), []byte(assInst))
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, &db.ErrKeyNotFoundInBucket{Bucket: db.AssignmentInstances, Key: assInst}
+	}
+	exists, err = db.KeyExistsInBucket([]byte(db.Appeals), []byte(assInst))
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Appeals, Key: assInst}
+	}
+	appeal := &Appeal{AssignmentInstance: assInst, State: Open}
+	if withDbUpdate {
+		mBox := messages.NewMessageBox()
+		appeal.MessageBox = mBox.ID
+		if err := db.Update(asUser, mBox, appeal); err != nil {
+			return nil, err
+		}
+	}
+	return appeal, nil
 }
 
 func (a *Appeal) Key() []byte {

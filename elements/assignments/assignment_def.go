@@ -19,11 +19,11 @@ const (
 // assignment definition
 type AssignmentDef struct {
 	db.ABucketElement
-	Name		string
-	DueBy		time.Time
-	Course		string
-	State		int
-	Files		*containers.StringSet
+	Name		string					`json:"name"`
+	DueBy		time.Time				`json:"due_by"`
+	Course		string					`json:"course"`
+	State		int						`json:"state"`
+	Files		*containers.StringSet	`json:"files"`
 }
 
 func GetDef(id string) (*AssignmentDef, error) {
