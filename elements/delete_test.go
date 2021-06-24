@@ -31,7 +31,7 @@ func TestDeleteUser(t *testing.T) {
 	if err := db.Update(db.System, box1, box2, msg1, msg2, appeal, ass, user); err != nil {
 		t.Fatalf("error elements for test: %v", err)
 	}
-	if err := users.Delete(user); err != nil {
+	if err := users.Delete(user, false); err != nil {
 		t.Fatalf("error deleting assignment instance: %v", err)
 	}
 	if exists, err := db.KeyExistsInBucket([]byte(db.Messages), []byte(msg1.ID)); err != nil {
@@ -93,7 +93,7 @@ func TestDeleteCourse(t *testing.T) {
 	if err := db.Update(db.System, box1, msg1, appeal, assInst, ass, course, test, box2, msg2); err != nil {
 		t.Fatalf("error creating elements for test: %v", err)
 	}
-	if err := courses.Delete(course); err != nil {
+	if err := courses.Delete(course, false); err != nil {
 		t.Fatalf("error deleting course: %v", err)
 	}
 	if exists, err := db.KeyExistsInBucket([]byte(db.Messages), []byte(msg1.ID)); err != nil {
@@ -149,7 +149,7 @@ func TestDeleteTest(t *testing.T) {
 	if err := db.Update(db.System, box, msg, test); err != nil {
 		t.Fatalf("error creating elements for test: %v", err)
 	}
-	if err := tests.Delete(test); err != nil {
+	if err := tests.Delete(test, false); err != nil {
 		t.Fatalf("error deleting test: %v", err)
 	}
 	if exists, err := db.KeyExistsInBucket([]byte(db.Messages), []byte(msg.ID)); err != nil {
@@ -206,7 +206,7 @@ func TestDeleteAssignmentInstance(t *testing.T) {
 	if err := db.Update(db.System, box, msg, appeal, ass); err != nil {
 		t.Fatalf("error creating elements for test: %v", err)
 	}
-	if err := assignments.DeleteInstance(ass); err != nil {
+	if err := assignments.DeleteInstance(ass, false); err != nil {
 		t.Fatalf("error deleting assignment instance: %v", err)
 	}
 	if exists, err := db.KeyExistsInBucket([]byte(db.Messages), []byte(msg.ID)); err != nil {
@@ -246,7 +246,7 @@ func TestDeleteAssignmentDefinition(t *testing.T) {
 	if err := db.Update(db.System, box, msg, appeal, assInst, ass); err != nil {
 		t.Fatalf("error creating elements for test: %v", err)
 	}
-	if err := assignments.DeleteDef(ass); err != nil {
+	if err := assignments.DeleteDef(ass, false); err != nil {
 		t.Fatalf("error deleting assignment definition: %v", err)
 	}
 	if exists, err := db.KeyExistsInBucket([]byte(db.Messages), []byte(msg.ID)); err != nil {

@@ -30,12 +30,12 @@ func getDbForCoursesHandlersTest() (map[string]*users.User, map[string]*courses.
 	}
 	testUsers[users.Secretary] = secretary
 	testCourses := make(map[string]*courses.Course)
-	course1, err := courses.NewCourse(1, "course1", secretary.UserName, true)
+	course1, err := courses.NewCourse(1, "course1", secretary.UserName, true, false)
 	if err != nil {
 		panic(err)
 	}
 	testCourses["course1"] = course1
-	course2, err := courses.NewCourse(2, "course2", secretary.UserName, true)
+	course2, err := courses.NewCourse(2, "course2", secretary.UserName, true, false)
 	if err != nil {
 		panic(err)
 	}

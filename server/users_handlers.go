@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/fs"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
@@ -132,7 +133,7 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 		writeStrErrResp(w, r, http.StatusForbidden, "deletion of admin user is forbidden")
 		return
 	}
-	if err := users.Delete(requestedUser); err != nil {
+	if err := users.Delete(requestedUser, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/courses"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/fs"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
@@ -136,7 +137,7 @@ func handleCreateCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := courses.NewCourse(course.Number, course.Name, r.Context().Value(authenticatedUser).(*users.User).UserName, true); err != nil {
+	if _, err := courses.NewCourse(course.Number, course.Name, r.Context().Value(authenticatedUser).(*users.User).UserName, true, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -194,7 +195,7 @@ func handleDeleteCourse(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := courses.Delete(course); err != nil {
+	if err := courses.Delete(course, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}

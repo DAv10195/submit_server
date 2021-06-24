@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/fs"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
@@ -117,7 +118,7 @@ func handleCreateAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := assignments.NewDef(ass.Course, ass.DueBy, ass.Name, r.Context().Value(authenticatedUser).(*users.User).UserName, true); err != nil {
+	if _, err := assignments.NewDef(ass.Course, ass.DueBy, ass.Name, r.Context().Value(authenticatedUser).(*users.User).UserName, true, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -198,7 +199,7 @@ func handleDeleteAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := assignments.DeleteDef(ass); err != nil {
+	if err := assignments.DeleteDef(ass, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -241,7 +242,7 @@ func handlePublishAssignmentDef(w http.ResponseWriter, r *http.Request) {
 	var elements []db.IBucketElement
 	asUser := r.Context().Value(authenticatedUser).(*users.User).UserName
 	for _, userName := range courseUserNames {
-		ass, err := assignments.NewInstance(assDef.Course, assDef.DueBy, assDef.Name, userName, asUser, false)
+		ass, err := assignments.NewInstance(assDef.Course, assDef.DueBy, assDef.Name, userName, asUser, false, fs.GetClient() != nil)
 		if err != nil {
 			writeErrResp(w, r, http.StatusInternalServerError, err)
 			return

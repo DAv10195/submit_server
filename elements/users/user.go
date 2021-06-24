@@ -192,7 +192,7 @@ func (b *UserBuilder) Build() (*User, error) {
 }
 
 // delete the user also deleting his message box and assignment instances
-func Delete(user *User) error {
+func Delete(user *User, withFsUpdate bool) error {
 	var instToDel []*assignments.AssignmentInstance
 	if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_, elemBytes []byte) error {
 		inst := &assignments.AssignmentInstance{}
@@ -207,7 +207,7 @@ func Delete(user *User) error {
 		return err
 	}
 	for _, inst := range instToDel {
-		if err := assignments.DeleteInstance(inst); err != nil {
+		if err := assignments.DeleteInstance(inst, withFsUpdate); err != nil {
 			return err
 		}
 	}

@@ -6,6 +6,8 @@ import (
 	"github.com/DAv10195/submit_commons/containers"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
+	"github.com/DAv10195/submit_server/fs"
+	"strings"
 )
 
 // possible test state values
@@ -52,8 +54,7 @@ func Get(id string) (*Test, error) {
 	return test, nil
 }
 
-func Delete(t *Test) error {
-	// TODO: delete files in file server
+func Delete(t *Test, withFsUpdate bool) error {
 	box, err := messages.Get(t.MessageBox)
 	if err != nil {
 		return err
@@ -61,5 +62,17 @@ func Delete(t *Test) error {
 	if err := messages.Delete(box); err != nil {
 		return err
 	}
-	return db.Delete(t)
+	if err := db.Delete(t); err != nil {
+		return err
+	}
+	if withFsUpdate {
+		split := strings.Split(t.AssignmentDef, db.KeySeparator)
+		if len(split) != 3 {
+			return fmt.Errorf("invalid assignment def key ('%s')", t.AssignmentDef)
+		}
+		if err := fs.GetClient().Delete(strings.Join([]string{db.Courses, split[0], split[1], split[2], "tests"}, "/")); err != nil {
+			return err
+		}
+	}
+	return nil
 }

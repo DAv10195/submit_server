@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/DAv10195/submit_commons/containers"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/appeals"
+	"github.com/DAv10195/submit_server/fs"
+	"strings"
 	"time"
 )
 
@@ -42,8 +45,7 @@ func GetInstance(id string) (*AssignmentInstance, error) {
 }
 
 // delete the assignment instance, appeals associated and the files associated with it
-func DeleteInstance(ass *AssignmentInstance) error {
-	// TODO: delete files in file server
+func DeleteInstance(ass *AssignmentInstance, withFsUpdate bool) error {
 	appeal, err := appeals.Get(string(ass.Key()))
 	if err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); !ok {
@@ -55,10 +57,22 @@ func DeleteInstance(ass *AssignmentInstance) error {
 			return err
 		}
 	}
-	return db.Delete(ass)
+	if err := db.Delete(ass); err != nil {
+		return err
+	}
+	if withFsUpdate {
+		split := strings.Split(ass.AssignmentDef, db.KeySeparator)
+		if len(split) != 3 {
+			fmt.Errorf("invalid assignment def key ('%s')", ass.AssignmentDef)
+		}
+		if err := fs.GetClient().Delete(strings.Join([]string{db.Courses, split[0], split[1], split[2], ass.UserName}, "/")); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func NewInstance(course string, dueBy time.Time, assName string, userName string, asUser string, withDbUpdate bool) (*AssignmentInstance, error) {
+func NewInstance(course string, dueBy time.Time, assName string, userName string, asUser string, withDbUpdate bool, withFsUpdate bool) (*AssignmentInstance, error) {
 	assDefKey := fmt.Sprintf("%s%s%s", course, db.KeySeparator, assName)
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(assDefKey))
 	if err != nil {
@@ -78,7 +92,15 @@ func NewInstance(course string, dueBy time.Time, assName string, userName string
 	if dueBy.Before(time.Now().UTC()) {
 		return nil, errors.New("given due by time is before current UTC time")
 	}
-	// TODO: create diretory for ass inst in file server
+	if withFsUpdate {
+		split := strings.Split(course, db.KeySeparator)
+		if len(split) != 2 {
+			return nil, fmt.Errorf("invalid course key ('%s')", course)
+		}
+		if err := fs.GetClient().UploadTextToFS(strings.Join([]string{db.Courses, split[0], split[1], assName, userName, submithttp.FsPlaceHolderFileName}, "/"), []byte("")); err != nil {
+			return nil, err
+		}
+	}
 	ass := &AssignmentInstance{UserName: userName, AssignmentDef: assDefKey, State: Assigned, DueBy: dueBy}
 	if withDbUpdate {
 		if err := db.Update(asUser, ass); err != nil {

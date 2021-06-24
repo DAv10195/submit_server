@@ -5,8 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/DAv10195/submit_commons/containers"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/tests"
+	"github.com/DAv10195/submit_server/fs"
+	"strings"
 	"time"
 )
 
@@ -39,8 +42,7 @@ func GetDef(id string) (*AssignmentDef, error) {
 }
 
 // delete the assignment definition, instances, relevant tests and files
-func DeleteDef(ass *AssignmentDef) error {
-	// TODO: delete files in file server
+func DeleteDef(ass *AssignmentDef, withFsUpdate bool) error {
 	var instToDel []*AssignmentInstance
 	if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_, elemBytes []byte) error {
 		inst := &AssignmentInstance{}
@@ -55,7 +57,7 @@ func DeleteDef(ass *AssignmentDef) error {
 		return err
 	}
 	for _, inst := range instToDel {
-		if err := DeleteInstance(inst); err != nil {
+		if err := DeleteInstance(inst, withFsUpdate); err != nil {
 			return err
 		}
 	}
@@ -73,14 +75,26 @@ func DeleteDef(ass *AssignmentDef) error {
 		return err
 	}
 	for _, test := range testsToDel {
-		if err := tests.Delete(test); err != nil {
+		if err := tests.Delete(test, withFsUpdate); err != nil {
 			return err
 		}
 	}
-	return db.Delete(ass)
+	if err := db.Delete(ass); err != nil {
+		return err
+	}
+	if withFsUpdate {
+		split := strings.Split(ass.Course, db.KeySeparator)
+		if len(split) != 2 {
+			return fmt.Errorf("invalid course key ('%s')", ass.Course)
+		}
+		if err := fs.GetClient().Delete(strings.Join([]string{db.Courses, split[0], split[1], ass.Name}, "/")); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func NewDef(course string, dueBy time.Time, name string, asUser string, withDbUpdate bool) (*AssignmentDef, error) {
+func NewDef(course string, dueBy time.Time, name string, asUser string, withDbUpdate bool, withFsUpdate bool) (*AssignmentDef, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.Courses), []byte(course))
 	if err != nil {
 		return nil, err
@@ -99,7 +113,16 @@ func NewDef(course string, dueBy time.Time, name string, asUser string, withDbUp
 	if dueBy.Before(time.Now().UTC()) {
 		return nil, errors.New("given due by time is before current UTC time")
 	}
-	// TODO: create diretory for ass def in file server
+	if withFsUpdate {
+		split := strings.Split(course, db.KeySeparator)
+		if len(split) != 2 {
+			return nil, fmt.Errorf("invalid course key ('%s')", course)
+		}
+		// each ass def should also have a test folder, so create the entire hierarchy down to the tests folder and the ass folder will be created on the way
+		if err := fs.GetClient().UploadTextToFS(strings.Join([]string{db.Courses, split[0], split[1], name, "tests", submithttp.FsPlaceHolderFileName}, "/"), []byte("")); err != nil {
+			return nil, err
+		}
+	}
 	ass := &AssignmentDef{Course: course, DueBy: dueBy, Name: name, State: Draft, Files: containers.NewStringSet()}
 	if withDbUpdate {
 		if err := db.Update(asUser, ass); err != nil {

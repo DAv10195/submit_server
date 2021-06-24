@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/DAv10195/submit_commons/containers"
 	submiterr "github.com/DAv10195/submit_commons/errors"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/assignments"
+	"github.com/DAv10195/submit_server/fs"
 	"time"
 )
 
@@ -28,7 +30,7 @@ func (c *Course) Bucket() []byte {
 }
 
 // create a new course with the given number and name
-func NewCourse(number int, name string, asUser string, withDbUpdate bool) (*Course, error) {
+func NewCourse(number int, name string, asUser string, withDbUpdate bool, withFsUpdate bool) (*Course, error) {
 	if number <= 0 {
 		return nil, &submiterr.ErrInsufficientData{Message: "number of course must be positive"}
 	}
@@ -44,7 +46,11 @@ func NewCourse(number int, name string, asUser string, withDbUpdate bool) (*Cour
 	if exists {
 		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Courses, Key: courseKey}
 	}
-	// TODO: create diretory for course in file server
+	if withFsUpdate {
+		if err := fs.GetClient().UploadTextToFS(fmt.Sprintf("%s/%d/%d/%s", db.Courses, number, year, submithttp.FsPlaceHolderFileName), []byte("")); err != nil {
+			return nil, err
+		}
+	}
 	course := &Course{Number: number, Year: year, Name: name, Files: containers.NewStringSet()}
 	if withDbUpdate {
 		if err := db.Update(asUser, course); err != nil {
@@ -55,8 +61,7 @@ func NewCourse(number int, name string, asUser string, withDbUpdate bool) (*Cour
 }
 
 // delete the course and the assignment definitions
-func Delete(course *Course) error {
-	// TODO: delete files in file server
+func Delete(course *Course, withFsUpdate bool) error {
 	var defsToDel []*assignments.AssignmentDef
 	if err := db.QueryBucket([]byte(db.AssignmentDefinitions), func(_, elemBytes []byte) error {
 		def := &assignments.AssignmentDef{}
@@ -71,11 +76,19 @@ func Delete(course *Course) error {
 		return err
 	}
 	for _, def := range defsToDel {
-		if err := assignments.DeleteDef(def); err != nil {
+		if err := assignments.DeleteDef(def, withFsUpdate); err != nil {
 			return err
 		}
 	}
-	return db.Delete(course)
+	if err := db.Delete(course); err != nil {
+		return err
+	}
+	if withFsUpdate {
+		if err := fs.GetClient().Delete(fmt.Sprintf("%s/%d/%d", db.Courses, course.Number, course.Year)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // return the course with the given number and year if it exists
