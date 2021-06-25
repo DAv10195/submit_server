@@ -17,6 +17,8 @@ func InitServer(port int, wg *sync.WaitGroup, ctx context.Context) *http.Server 
 	initUsersRouter(baseRouter, am)
 	initCoursesRouter(baseRouter, am)
 	initAssDefsRouter(baseRouter, am)
+	initAssInstsRouter(baseRouter, am)
+	initAppealsRouter(baseRouter, am)
 	initAgentsBackend(baseRouter, am, ctx, wg)
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", port),

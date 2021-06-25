@@ -15,6 +15,15 @@ import (
 )
 
 func handleGetAppealsForCourse(forCourse string, w http.ResponseWriter, r *http.Request, params *submithttp.PagingParams) {
+	exists, err := db.KeyExistsInBucket([]byte(db.Courses), []byte(forCourse))
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if !exists {
+		writeErrResp(w, r, http.StatusNotFound, &db.ErrKeyNotFoundInBucket{Key: forCourse, Bucket: db.Courses})
+		return
+	}
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.Appeals), func (appealKey []byte, appealBytes []byte) error {
@@ -46,6 +55,15 @@ func handleGetAppealsForCourse(forCourse string, w http.ResponseWriter, r *http.
 }
 
 func handleGetAppealsForAss(forAss string, w http.ResponseWriter, r *http.Request, params *submithttp.PagingParams) {
+	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(forAss))
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if !exists {
+		writeErrResp(w, r, http.StatusNotFound, &db.ErrKeyNotFoundInBucket{Key: forAss, Bucket: db.AssignmentDefinitions})
+		return
+	}
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.Appeals), func (appealKey []byte, appealBytes []byte) error {
@@ -148,7 +166,16 @@ func handleCreateAppeal(w http.ResponseWriter, r *http.Request) {
 		writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("no assignment instance given via '%s' header", submithttp.ForSubmitAss))
 		return
 	}
-	_, err := appeals.New(forAss, r.Context().Value(authenticatedUser).(*users.User).UserName, true)
+	ass, err := assignments.GetInstance(forAss)
+	if err != nil {
+		writeErrResp(w, r, http.StatusBadRequest, err)
+		return
+	}
+	if ass.State != assignments.Graded {
+		writeStrErrResp(w, r, http.StatusBadRequest, "creating appeal for an ungraded assignment is forbidden")
+		return
+	}
+	_, err = appeals.New(forAss, r.Context().Value(authenticatedUser).(*users.User).UserName, true)
 	if err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return

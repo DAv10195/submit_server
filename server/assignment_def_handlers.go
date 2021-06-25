@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/DAv10195/submit_server/fs"
 	"github.com/gorilla/mux"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -273,8 +275,14 @@ func initAssDefsRouter(r *mux.Router, manager *authManager) {
 				return user.CoursesAsStaff.Contains(forCourse)
 			}
 		} else if request.Method == http.MethodPost {
+			buf, err := ioutil.ReadAll(request.Body)
+			if err != nil {
+				return true // let the creation handler fail this with bad request...
+			}
+			bodyCopy1, bodyCopy2 := ioutil.NopCloser(bytes.NewBuffer(buf)), ioutil.NopCloser(bytes.NewBuffer(buf))
+			request.Body = bodyCopy1
 			ass := &assignments.AssignmentDef{}
-			if err := json.NewDecoder(request.Body).Decode(ass); err != nil {
+			if err := json.NewDecoder(bodyCopy2).Decode(ass); err != nil {
 				return true // let the creation handler fail this with bad request...
 			}
 			return user.CoursesAsStaff.Contains(ass.Course)
