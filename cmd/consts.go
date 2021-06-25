@@ -7,11 +7,17 @@ const (
 
 	defaultConfigFileName	= "submit_server.yml"
 	yaml					= "yaml"
+	encryptedPrefix			= "encrypted:"
 	info					= "info"
+	defPort					= 8080
 	defMaxLogFileSize		= 10
 	defMaxLogFileAge		= 3
 	defMaxLogFileBackups	= 3
 	deLogFileAndStdOut		= false
+	defFileServerHost		= "localhost"
+	defFileServerPort		= 8081
+	defFileServerUser		= "admin"
+	defFileServerPassword	= "admin"
 
 	flagConfigFile        	= "config-file"
 	flagDbDir             	= "db-dir"
@@ -22,4 +28,8 @@ const (
 	flagLogFileMaxSize    	= "log-file-max-size"
 	flagLogFileMaxBackups 	= "log-file-max-backups"
 	flagLogFileMaxAge     	= "log-file-max-age"
+	flagFileServerHost		= "file-server-host"
+	flagFileServerPort		= "file-server-port"
+	flagFileServerUser		= "file-server-user"
+	flagFileServerPassword	= "file-server-password"
 )

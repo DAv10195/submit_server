@@ -27,4 +27,6 @@ const (
 
 	courseNumber			= "courseNumber"
 	courseYear				= "courseYear"
+
+	assDefName				= "assDefName"
 )

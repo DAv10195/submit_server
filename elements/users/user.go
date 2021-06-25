@@ -7,6 +7,7 @@ import (
 	"github.com/DAv10195/submit_commons/containers"
 	submiterr "github.com/DAv10195/submit_commons/errors"
 	"github.com/DAv10195/submit_server/db"
+	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/messages"
 )
 
@@ -188,4 +189,34 @@ func (b *UserBuilder) Build() (*User, error) {
 		}
 	}
 	return user, nil
+}
+
+// delete the user also deleting his message box and assignment instances
+func Delete(user *User, withFsUpdate bool) error {
+	var instToDel []*assignments.AssignmentInstance
+	if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_, elemBytes []byte) error {
+		inst := &assignments.AssignmentInstance{}
+		if err := json.Unmarshal(elemBytes, inst); err != nil {
+			return err
+		}
+		if inst.UserName == user.UserName {
+			instToDel = append(instToDel, inst)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, inst := range instToDel {
+		if err := assignments.DeleteInstance(inst, withFsUpdate); err != nil {
+			return err
+		}
+	}
+	box, err := messages.Get(user.MessageBox)
+	if err != nil {
+		return err
+	}
+	if err := messages.Delete(box); err != nil {
+		return err
+	}
+	return db.Delete(user)
 }

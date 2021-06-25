@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/courses"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/fs"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
@@ -32,7 +33,7 @@ func handleGetCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, errors.New("invalid course number and/or year integer path params"))
 		return
 	}
-	course, err := courses.Get(number, year)
+	course, err := courses.Get(fmt.Sprintf("%d%s%d", number, db.KeySeparator, year))
 	if err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
 			writeErrResp(w, r, http.StatusNotFound, err)
@@ -44,10 +45,62 @@ func handleGetCourse(w http.ResponseWriter, r *http.Request) {
 	writeElem(w, r, http.StatusOK, course)
 }
 
+func handleGetCoursesForUser(forUser string, w http.ResponseWriter, r *http.Request, params *submithttp.PagingParams) {
+	var user *users.User
+	requestUser := r.Context().Value(authenticatedUser).(*users.User)
+	if requestUser.UserName == forUser {
+		user = requestUser
+	} else {
+		var err error
+		user, err = users.Get(forUser)
+		if err != nil {
+			if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+				writeErrResp(w, r, http.StatusNotFound, err)
+			} else {
+				writeErrResp(w, r, http.StatusInternalServerError, err)
+			}
+			return
+		}
+	}
+	var elements []db.IBucketElement
+	var elementsCount, elementsIndex int64
+	if err := db.QueryBucket([]byte(db.Courses), func(_, elementBytes []byte) error {
+		elementsIndex++
+		if elementsIndex <= params.AfterId {
+			return nil
+		}
+		course := &courses.Course{}
+		if err := json.Unmarshal(elementBytes, course); err != nil {
+			return err
+		}
+		if user.CoursesAsStudent.Contains(string(course.Key())) || user.Roles.Contains(string(course.Key())) {
+			elements = append(elements, course)
+			elementsCount++
+			if elementsCount == params.Limit {
+				return &db.ErrStopQuery{}
+			}
+		}
+		return nil
+	}); err != nil {
+		if _, ok := err.(*db.ErrElementsLeftToProcess); ok {
+			w.Header().Set(submithttp.ElementsLeftToProcess, trueStr)
+		} else {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	writeElements(w, r, http.StatusOK, elements)
+}
+
 func handleGetCourses(w http.ResponseWriter, r *http.Request) {
 	params, err := submithttp.PagingParamsFromRequest(r)
 	if err != nil {
 		writeErrResp(w, r, http.StatusBadRequest, fmt.Errorf("error parsing query params: %v", err))
+		return
+	}
+	forUser := r.Header.Get(submithttp.ForSubmitUser)
+	if forUser != "" {
+		handleGetCoursesForUser(forUser, w, r, params)
 		return
 	}
 	var elements []db.IBucketElement
@@ -84,7 +137,7 @@ func handleCreateCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := courses.NewCourse(course.Number, course.Name, r.Context().Value(authenticatedUser).(*users.User).UserName, true); err != nil {
+	if _, err := courses.NewCourse(course.Number, course.Name, r.Context().Value(authenticatedUser).(*users.User).UserName, true, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -133,7 +186,7 @@ func handleDeleteCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, errors.New("invalid course number and/or year integer path params"))
 		return
 	}
-	course, err := courses.Get(number, year)
+	course, err := courses.Get(fmt.Sprintf("%d%s%d", number, db.KeySeparator, year))
 	if err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
 			writeErrResp(w, r, http.StatusNotFound, err)
@@ -142,7 +195,7 @@ func handleDeleteCourse(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := db.Delete(course); err != nil {
+	if err := courses.Delete(course, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
@@ -155,8 +208,11 @@ func initCoursesRouter(r *mux.Router, manager *authManager) {
 	coursesRouter := r.PathPrefix(coursesBasePath).Subrouter()
 	coursesRouter.HandleFunc("/", handleGetCourses).Methods(http.MethodGet)
 	coursesRouter.HandleFunc("/", handleCreateCourse).Methods(http.MethodPost)
-	manager.addPathToMap(fmt.Sprintf("%s/", coursesBasePath), func (user *users.User, _ *http.Request) bool {
-		return user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin)
+	manager.addPathToMap(fmt.Sprintf("%s/", coursesBasePath), func (user *users.User, r *http.Request) bool {
+		if user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin) {
+			return true
+		}
+		return r.Method == http.MethodGet && user.Roles.Contains(users.StandardUser) && user.UserName == r.Header.Get(submithttp.ForSubmitUser)
 	})
 	specificCoursePath := fmt.Sprintf("/{%s}/{%s}", courseNumber, courseYear)
 	coursesRouter.HandleFunc(specificCoursePath, handleGetCourse).Methods(http.MethodGet)

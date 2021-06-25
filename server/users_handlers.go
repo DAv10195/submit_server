@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/fs"
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
@@ -97,6 +98,9 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 			}
 			return
 		}
+		if user.Roles.NumberOfElements() == 0 {
+			user.Roles.Add(users.StandardUser)
+		}
 		messageBox := messages.NewMessageBox()
 		user.MessageBox = messageBox.ID
 		elementsToCreate = append(elementsToCreate, messageBox, user)
@@ -111,8 +115,9 @@ func handleRegisterUsers(w http.ResponseWriter, r *http.Request) {
 // delete the user with the given name
 func handleDelUser(w http.ResponseWriter, r *http.Request) {
 	requestedUserName := mux.Vars(r)[userName]
-	if requestedUserName == r.Context().Value(authenticatedUser).(*users.User).UserName {
-		writeStrErrResp(w, r, http.StatusBadRequest, "self deletion is forbidden")
+	authenticatedUser := r.Context().Value(authenticatedUser).(*users.User)
+	if requestedUserName == authenticatedUser.UserName {
+		writeStrErrResp(w, r, http.StatusForbidden, "self deletion is forbidden")
 		return
 	}
 	requestedUser, err := users.Get(requestedUserName)
@@ -124,7 +129,11 @@ func handleDelUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if err := db.Delete(requestedUser); err != nil {
+	if requestedUser.Roles.Contains(users.Admin) && !authenticatedUser.Roles.Contains(users.Admin) {
+		writeStrErrResp(w, r, http.StatusForbidden, "deletion of admin user is forbidden")
+		return
+	}
+	if err := users.Delete(requestedUser, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}

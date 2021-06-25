@@ -5,9 +5,9 @@ import "github.com/DAv10195/submit_server/db"
 // message
 type Message struct {
 	db.ABucketElement
-	ID		string
-	From	string
-	Text	string
+	ID		string	`json:"id"`
+	From	string	`json:"from"`
+	Text	string	`json:"text"`
 }
 
 func (m *Message) Key() []byte {

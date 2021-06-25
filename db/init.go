@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+	commons "github.com/DAv10195/submit_commons"
 	"github.com/boltdb/bolt"
 	"os"
 	"path/filepath"
@@ -54,15 +56,15 @@ func initBuckets() error {
 
 // initializes a DB for testing and returns a cleanup function
 func InitDbForTest() func() {
-	path := os.TempDir()
+	path := filepath.Join(os.TempDir(), fmt.Sprintf("submit_test_db_%s", commons.GenerateUniqueId()))
+	if err := os.MkdirAll(path, 0755); err != nil {
+		panic(err)
+	}
 	if err := InitDB(path); err != nil {
 		panic(err)
 	}
 	return func() {
-		if err := os.Remove(filepath.Join(path, DatabaseFileName)); err != nil {
-			panic(err)
-		}
-		if err := os.Remove(filepath.Join(path, DatabaseEncryptionKeyFileName)); err != nil {
+		if err := os.RemoveAll(path); err != nil {
 			panic(err)
 		}
 	}
