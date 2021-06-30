@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	maxCookieAge		= 5 * 60
 	submitCookie		= "submit-cookie"
 	sessionKeyFileName	= "submit_session.key"
 
-	KeyLength			= 32
-	KeyFilePerms		= 0600
-	SubmitSessionUser	= "submit_session_user"
+	keyLength          = 32
+	keyFilePerms       = 0600
+	SubmitMaxCookieAge = 5 * 60
+	SubmitSessionUser  = "submit_session_user"
 )
 
 var ErrNotFound = errors.New("session not found")
@@ -28,16 +28,16 @@ var ErrAlreadyExists = errors.New("session already exists")
 var store *sessions.CookieStore
 
 func Init(dir string) error {
-	key := make([]byte, KeyLength)
+	key := make([]byte, keyLength)
 	keyFileName := filepath.Join(dir, sessionKeyFileName)
 	if _, err := os.Stat(keyFileName); err != nil {
 		if os.IsNotExist(err) {
 			if _, err := rand.Read(key); err != nil {
 				return err
 			}
-			encodedKey := make([]byte, base64.StdEncoding.EncodedLen(KeyLength))
+			encodedKey := make([]byte, base64.StdEncoding.EncodedLen(keyLength))
 			base64.StdEncoding.Encode(encodedKey, key)
-			if err := ioutil.WriteFile(keyFileName, encodedKey, KeyFilePerms); err != nil {
+			if err := ioutil.WriteFile(keyFileName, encodedKey, keyFilePerms); err != nil {
 				return err
 			}
 		} else {
@@ -48,10 +48,10 @@ func Init(dir string) error {
 		if err != nil {
 			return err
 		}
-		decodedKey := make([]byte, KeyLength)
+		decodedKey := make([]byte, keyLength)
 		numDecodedBytes, err := base64.StdEncoding.Decode(decodedKey, keyFromFile)
-		if numDecodedBytes != KeyLength {
-			return fmt.Errorf("number of bytes in key file (%s) is not as expected (%d)", keyFileName, KeyLength)
+		if numDecodedBytes != keyLength {
+			return fmt.Errorf("number of bytes in key file (%s) is not as expected (%d)", keyFileName, keyLength)
 		}
 	}
 	store = sessions.NewCookieStore(key)
@@ -80,6 +80,6 @@ func New(r *http.Request, userName string) (*sessions.Session, error) {
 		return nil, ErrAlreadyExists
 	}
 	sess.Values[SubmitSessionUser] = userName
-	sess.Options.MaxAge = maxCookieAge
+	sess.Options.MaxAge = SubmitMaxCookieAge
 	return sess, nil
 }

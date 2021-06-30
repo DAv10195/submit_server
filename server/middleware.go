@@ -19,6 +19,11 @@ func authenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sess, err := session.Get(r)
 		if err == nil {
+			sess.Options.MaxAge = session.SubmitMaxCookieAge
+			if err := sess.Save(r, w); err != nil {
+				writeErrResp(w, r, http.StatusInternalServerError, err)
+				return
+			}
 			user, err := users.Get(sess.Values[session.SubmitSessionUser].(string))
 			if err != nil {
 				writeErrResp(w, r, http.StatusInternalServerError, err)
