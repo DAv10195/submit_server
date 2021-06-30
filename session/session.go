@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	submitCookie		= "submit-cookie"
+	submitCookie		= "submit-server-cookie"
 	sessionKeyFileName	= "submit_session.key"
 
 	keyLength          = 32
