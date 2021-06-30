@@ -9,6 +9,7 @@ import (
 	"github.com/DAv10195/submit_server/fs"
 	"github.com/DAv10195/submit_server/path"
 	"github.com/DAv10195/submit_server/server"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -62,7 +63,8 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			} else {
 				logger.Debug("log file undefined")
 			}
-			if err := db.InitDB(viper.GetString(flagDbDir)); err != nil {
+			dir := viper.GetString(flagDbDir)
+			if err := db.InitDB(dir); err != nil {
 				return err
 			}
 			fsPwd, err := handleConfigEncryption(viper.GetString(flagFileServerPassword), configFilePath)
@@ -70,6 +72,9 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 				return err
 			}
 			if err := fs.Init(viper.GetString(flagFileServerHost), viper.GetInt(flagFileServerPort), viper.GetString(flagFileServerUser), fsPwd); err != nil {
+				return err
+			}
+			if err := session.Init(dir); err != nil {
 				return err
 			}
 			if err := users.InitDefaultAdmin(); err != nil {
