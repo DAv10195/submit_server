@@ -3,11 +3,13 @@ package session
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/sessions"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -22,10 +24,19 @@ const (
 	keyFilePerms       			= 0600
 	SubmitMaxCookieAge 			= 5 * 60
 	SubmitSessionUser  			= "submit_session_user"
+
+	authenticatedUser			= "authenticated_user"
 )
 
 var ErrNotFound = errors.New("session not found")
 var ErrAlreadyExists = errors.New("session already exists")
+
+type LoginData struct {
+	UserName 		string		`json:"user_name"`
+	Roles 			[]string	`json:"roles"`
+	StaffCourses	[]string	`json:"staff_courses"`
+	StudentCourses	[]string	`json:"student_courses"`
+}
 
 var store *sessions.CookieStore
 
@@ -91,4 +102,44 @@ func SetHeaders(w http.ResponseWriter, user *users.User) {
 	w.Header().Set(submithttp.SubmitSessionRoles, fmt.Sprintf("%v", user.Roles.Slice()))
 	w.Header().Set(submithttp.SubmitSessionStaffCourses,  fmt.Sprintf("%v", user.CoursesAsStaff.Slice()))
 	w.Header().Set(submithttp.SubmitSessionStudentCourses,  fmt.Sprintf("%v", user.CoursesAsStudent.Slice()))
+}
+
+func writeErr(w http.ResponseWriter, errStr string, logger *logrus.Entry) {
+	w.WriteHeader(http.StatusInternalServerError)
+	type resp struct {
+		Message string `json:"message"`
+	}
+	res := &resp{errStr}
+	respBytes, _ := json.Marshal(res)
+	if _, err := w.Write(respBytes); err != nil && logger != nil {
+		logger.WithError(err).Error("error writing login error")
+	}
+}
+
+func LoginHandler(logger *logrus.Entry) func (w http.ResponseWriter, r *http.Request) {
+	return func (w http.ResponseWriter, r *http.Request) {
+		user, ok := r.Context().Value(authenticatedUser).(*users.User)
+		if !ok {
+			errMsg := "no user in request"
+			if logger != nil {
+				logger.Error(errMsg)
+			}
+			writeErr(w, errMsg, logger)
+			return
+		}
+		ld := &LoginData{UserName: user.UserName, Roles: user.Roles.Slice(), StaffCourses: user.CoursesAsStaff.Slice(), StudentCourses: user.CoursesAsStudent.Slice()}
+		ldBytes, err := json.Marshal(ld)
+		if err != nil {
+			errMsg := "error formatting login data"
+			if logger != nil {
+				logger.WithError(err).Error(errMsg)
+			}
+			writeErr(w, err.Error(), logger)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write(ldBytes); err != nil && logger != nil {
+			logger.WithError(err).Error("error writing login data")
+		}
+	}
 }
