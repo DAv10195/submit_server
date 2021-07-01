@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	submithttp "github.com/DAv10195/submit_commons/http"
+	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/sessions"
 	"io/ioutil"
 	"net/http"
@@ -16,10 +18,10 @@ const (
 	submitCookie		= "submit-server-cookie"
 	sessionKeyFileName	= "submit_session.key"
 
-	keyLength          = 32
-	keyFilePerms       = 0600
-	SubmitMaxCookieAge = 5 * 60
-	SubmitSessionUser  = "submit_session_user"
+	keyLength          			= 32
+	keyFilePerms       			= 0600
+	SubmitMaxCookieAge 			= 5 * 60
+	SubmitSessionUser  			= "submit_session_user"
 )
 
 var ErrNotFound = errors.New("session not found")
@@ -82,4 +84,11 @@ func New(r *http.Request, userName string) (*sessions.Session, error) {
 	sess.Values[SubmitSessionUser] = userName
 	sess.Options.MaxAge = SubmitMaxCookieAge
 	return sess, nil
+}
+
+func SetHeaders(w http.ResponseWriter, user *users.User) {
+	w.Header().Set(submithttp.SubmitSessionUser, user.UserName)
+	w.Header().Set(submithttp.SubmitSessionRoles, fmt.Sprintf("%v", user.Roles.Slice()))
+	w.Header().Set(submithttp.SubmitSessionStaffCourses,  fmt.Sprintf("%v", user.CoursesAsStaff.Slice()))
+	w.Header().Set(submithttp.SubmitSessionStudentCourses,  fmt.Sprintf("%v", user.CoursesAsStudent.Slice()))
 }
