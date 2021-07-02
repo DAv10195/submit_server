@@ -7,6 +7,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,8 @@ import (
 func TestAppealHandlers(t *testing.T) {
 	testUsers, cleanup := getDbForAssInstHandlersTest()
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	forCourseHeaders, forAssHeaders, forAssUser2Headers, forAssUser3Headers, stateCloseHeaders, stateOpenHeaders := make(map[string]string), make(map[string]string), make(map[string]string), make(map[string]string), make(map[string]string), make(map[string]string)
 	year := time.Now().UTC().Year()
 	forCourseHeaders[submithttp.ForSubmitCourse] = fmt.Sprintf("1:%d", year)

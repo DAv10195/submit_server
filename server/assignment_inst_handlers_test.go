@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/courses"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -58,6 +59,8 @@ func getDbForAssInstHandlersTest() (map[string]*users.User, func()) {
 func TestAssInstHandlers(t *testing.T) {
 	testUsers, cleanup := getDbForAssInstHandlersTest()
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	forUser2Headers, forAssHeaders := make(map[string]string), make(map[string]string)
 	year := time.Now().UTC().Year()
 	forUser2Headers[submithttp.ForSubmitUser], forAssHeaders[submithttp.ForSubmitAss] = "user2", fmt.Sprintf("1:%d:ass", year)
@@ -130,7 +133,7 @@ func TestAssInstHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/1/%d/ass/user2", db.AssignmentInstances, year),
 			http.StatusAccepted,
-			[]byte(`{"created_by":"admin","created_on":"2021-06-24T22:37:49.321616Z","updated_by":"admin","updated_on":"2021-06-24T22:37:49.321616Z","user_name":"user2","assignment_def":"1:2021:ass","state":0,"files":{"elements":{"file.txt":{}}},"due_by":"2021-06-24T23:37:49.29625Z","copy":false,"grade":0}`),
+			[]byte(`{"created_by":"admin","created_on":"2021-06-24T22:37:49.321616Z","updated_by":"admin","updated_on":"2021-06-24T22:37:49.321616Z","user_name":"user2","assignment_def":"1:2021:ass","state":0,"files":{"elements":{"file.txt":{}}},"due_by":"2091-06-24T23:37:49.29625Z","copy":false,"grade":0}`),
 			testUsers[users.Admin],
 			nil,
 		},
@@ -202,7 +205,7 @@ func TestAssInstHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/1/%d/ass/user2", db.AssignmentInstances, year),
 			http.StatusAccepted,
-			[]byte(`{"created_by":"admin","created_on":"2021-06-24T22:37:49.321616Z","updated_by":"admin","updated_on":"2021-06-24T22:37:49.321616Z","user_name":"user2","assignment_def":"1:2021:ass","state":1,"files":{"elements":{"file.txt":{},"file2.txt":{}}},"due_by":"2021-06-24T23:37:49.29625Z","copy":false,"grade":0}`),
+			[]byte(`{"created_by":"admin","created_on":"2021-06-24T22:37:49.321616Z","updated_by":"admin","updated_on":"2021-06-24T22:37:49.321616Z","user_name":"user2","assignment_def":"1:2021:ass","state":1,"files":{"elements":{"file.txt":{},"file2.txt":{}}},"due_by":"2091-06-24T23:37:49.29625Z","copy":false,"grade":0}`),
 			testUsers["user1"],
 			nil,
 		},
@@ -211,7 +214,7 @@ func TestAssInstHandlers(t *testing.T) {
 			http.MethodPut,
 			fmt.Sprintf("/%s/1/%d/ass/user2", db.AssignmentInstances, year),
 			http.StatusAccepted,
-			[]byte(`{"created_by":"admin","created_on":"2021-06-24T22:37:49.321616Z","updated_by":"admin","updated_on":"2021-06-24T22:37:49.321616Z","user_name":"user2","assignment_def":"1:2021:ass","state":1,"files":{"elements":{"file.txt":{},"file2.txt":{},"file3.txt":{}}},"due_by":"2021-06-24T23:37:49.29625Z","copy":false,"grade":0}`),
+			[]byte(`{"created_by":"admin","created_on":"2021-06-24T22:37:49.321616Z","updated_by":"admin","updated_on":"2021-06-24T22:37:49.321616Z","user_name":"user2","assignment_def":"1:2021:ass","state":1,"files":{"elements":{"file.txt":{},"file2.txt":{},"file3.txt":{}}},"due_by":"2091-06-24T23:37:49.29625Z","copy":false,"grade":0}`),
 			testUsers["user2"],
 			nil,
 		},

@@ -8,6 +8,7 @@ import (
 	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/courses"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -34,6 +35,8 @@ func getDbForAssDefHandlersTest() (map[string]*users.User, map[string]*courses.C
 func TestAssDefsHandlers(t *testing.T) {
 	testUsers, testCourses, testAsses, cleanup := getDbForAssDefHandlersTest()
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	forCourse1HeaderMap, forCourse2HeaderMap := make(map[string]string), make(map[string]string)
 	forCourse1HeaderMap[submithttp.ForSubmitCourse] = string(testCourses["course1"].Key())
 	forCourse2HeaderMap[submithttp.ForSubmitCourse] = string(testCourses["course2"].Key())

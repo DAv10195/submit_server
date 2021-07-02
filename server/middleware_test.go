@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -77,6 +78,8 @@ func TestAuthenticationMiddleware(t *testing.T) {
 func TestAuthorizationMiddleware(t *testing.T){
 	cleanup := db.InitDbForTest()
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	am := NewAuthManager()
 	initTestAuthManager(am)
 	if err := users.InitDefaultAdmin(); err != nil {

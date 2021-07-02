@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -47,6 +48,8 @@ func TestUsersHandlers(t *testing.T) {
 		testUsersBytes[k] = userBytes
 	}
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	testCases := []struct{
 		name	string
 		method	string

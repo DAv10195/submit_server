@@ -7,6 +7,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/courses"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -52,6 +53,8 @@ func getDbForCoursesHandlersTest() (map[string]*users.User, map[string]*courses.
 func TestCoursesHandlers(t *testing.T) {
 	testUsers, testCourses, cleanup := getDbForCoursesHandlersTest()
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	stdUserHeader, adminHeaderMap := make(map[string]string), make(map[string]string)
 	stdUserHeader[submithttp.ForSubmitUser], adminHeaderMap[submithttp.ForSubmitUser] = users.StandardUser, users.Admin
 	testCases := []struct{
