@@ -65,15 +65,15 @@ func handleGetCoursesForUser(forUser string, w http.ResponseWriter, r *http.Requ
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.Courses), func(_, elementBytes []byte) error {
-		elementsIndex++
-		if elementsIndex <= params.AfterId {
-			return nil
-		}
 		course := &courses.Course{}
 		if err := json.Unmarshal(elementBytes, course); err != nil {
 			return err
 		}
 		if user.CoursesAsStudent.Contains(string(course.Key())) || user.Roles.Contains(string(course.Key())) {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
 			elements = append(elements, course)
 			elementsCount++
 			if elementsCount == params.Limit {

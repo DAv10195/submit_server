@@ -24,15 +24,15 @@ func handleGetAssignmentInstsForUser(forUser string, w http.ResponseWriter, r *h
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_ []byte, assInstBytes []byte) error {
-		elementsIndex++
-		if elementsIndex <= params.AfterId {
-			return nil
-		}
 		ass := &assignments.AssignmentInstance{}
 		if err := json.Unmarshal(assInstBytes, ass); err != nil {
 			return err
 		}
 		if ass.UserName == forUser {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
 			elements = append(elements, ass)
 			elementsCount++
 			if elementsCount == params.Limit {
@@ -55,15 +55,15 @@ func handleGetAssignmentInstsForAss(forAss string, w http.ResponseWriter, r *htt
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_ []byte, assInstBytes []byte) error {
-		elementsIndex++
-		if elementsIndex <= params.AfterId {
-			return nil
-		}
 		ass := &assignments.AssignmentInstance{}
 		if err := json.Unmarshal(assInstBytes, ass); err != nil {
 			return err
 		}
 		if ass.AssignmentDef == forAss {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
 			elements = append(elements, ass)
 			elementsCount++
 			if elementsCount == params.Limit {

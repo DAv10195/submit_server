@@ -30,15 +30,15 @@ func handleGetAssigmentDefsForCourse(forCourse string, w http.ResponseWriter, r 
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.AssignmentDefinitions), func(_, elementBytes []byte) error {
-		elementsIndex++
-		if elementsIndex <= params.AfterId {
-			return nil
-		}
 		ass := &assignments.AssignmentDef{}
 		if err := json.Unmarshal(elementBytes, ass); err != nil {
 			return err
 		}
 		if ass.Course == forCourse {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
 			elements = append(elements, ass)
 			elementsCount++
 			if elementsCount == params.Limit {

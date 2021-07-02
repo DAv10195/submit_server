@@ -27,15 +27,15 @@ func handleGetAppealsForCourse(forCourse string, w http.ResponseWriter, r *http.
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.Appeals), func (appealKey []byte, appealBytes []byte) error {
-		elementsIndex++
-		if elementsIndex <= params.AfterId {
-			return nil
-		}
 		appeal := &appeals.Appeal{}
 		if err := json.Unmarshal(appealBytes, appeal); err != nil {
 			return err
 		}
 		if strings.HasPrefix(string(appealKey), forCourse) {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
 			elements = append(elements, appeal)
 			elementsCount++
 			if elementsCount == params.Limit {
@@ -67,15 +67,15 @@ func handleGetAppealsForAss(forAss string, w http.ResponseWriter, r *http.Reques
 	var elements []db.IBucketElement
 	var elementsCount, elementsIndex int64
 	if err := db.QueryBucket([]byte(db.Appeals), func (appealKey []byte, appealBytes []byte) error {
-		elementsIndex++
-		if elementsIndex <= params.AfterId {
-			return nil
-		}
 		appeal := &appeals.Appeal{}
 		if err := json.Unmarshal(appealBytes, appeal); err != nil {
 			return err
 		}
 		if strings.HasPrefix(string(appealKey), forAss) {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
 			elements = append(elements, appeal)
 			elementsCount++
 			if elementsCount == params.Limit {
