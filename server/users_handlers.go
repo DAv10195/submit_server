@@ -157,23 +157,13 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if requestedUserName != updatedUser.UserName {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating user name is forbidden")
-		return
-	}
+	updatedUser.UserName = requestedUserName
 	preUpdateUser, err := users.Get(requestedUserName)
 	if err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	if preUpdateUser.Password != updatedUser.Password {
-		encryptedPassword, err := db.Encrypt(updatedUser.Password)
-		if err != nil {
-			writeErrResp(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		updatedUser.Password = encryptedPassword
-	}
+	updatedUser.Password = preUpdateUser.Password
 	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, updatedUser); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return

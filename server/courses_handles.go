@@ -165,14 +165,8 @@ func handleUpdateCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if updatedCourse.Number != number {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating course number is forbidden")
-		return
-	}
-	if updatedCourse.Year != year {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating course year is forbidden")
-		return
-	}
+	updatedCourse.Number = number
+	updatedCourse.Year = year
 	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, updatedCourse); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return

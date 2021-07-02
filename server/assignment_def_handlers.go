@@ -147,18 +147,9 @@ func handleUpdateAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if updatedAss.Course != preUpdateAss.Course {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment def course is forbidden")
-		return
-	}
-	if updatedAss.State != preUpdateAss.State {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment def state is forbidden")
-		return
-	}
-	if updatedAss.Name != preUpdateAss.Name {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment def name is forbidden")
-		return
-	}
+	updatedAss.Course = preUpdateAss.Course
+	updatedAss.State = preUpdateAss.State
+	updatedAss.Name = preUpdateAss.Name
 	var elementsToUpdate []db.IBucketElement
 	if updatedAss.DueBy != preUpdateAss.DueBy {
 		if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_ []byte, assInstBytes []byte) error {

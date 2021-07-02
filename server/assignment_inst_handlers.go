@@ -169,22 +169,10 @@ func handleUpdateAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if updatedAss.UserName != preUpdateAss.UserName {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment instance user name is forbidden")
-		return
-	}
-	if updatedAss.AssignmentDef != preUpdateAss.AssignmentDef {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment instance definition reference is forbidden")
-		return
-	}
-	if updatedAss.State != preUpdateAss.State {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment instance state is forbidden")
-		return
-	}
-	if updatedAss.MarkedAsCopy != preUpdateAss.MarkedAsCopy {
-		writeStrErrResp(w, r, http.StatusBadRequest, "updating assignment instance copy flag is forbidden")
-		return
-	}
+	updatedAss.UserName = preUpdateAss.UserName
+	updatedAss.AssignmentDef = preUpdateAss.AssignmentDef
+	updatedAss.State = preUpdateAss.State
+	updatedAss.MarkedAsCopy = preUpdateAss.MarkedAsCopy
 	cNumber, cYear, err := getCourseNumberAndYearFromRequest(r)
 	if err != nil {
 		writeStrErrResp(w, r, http.StatusBadRequest, "invalid course number and/or year integer path params")
