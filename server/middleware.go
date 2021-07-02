@@ -28,7 +28,6 @@ func authenticationMiddleware(next http.Handler) http.Handler {
 			if err != nil {
 				writeErrResp(w, r, http.StatusInternalServerError, err)
 			}
-			session.SetHeaders(w, user)
 			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authenticatedUser, user)))
 			return
 		} else if err != session.ErrNotFound {
@@ -60,7 +59,6 @@ func authenticationMiddleware(next http.Handler) http.Handler {
 			writeErrResp(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		session.SetHeaders(w, userStruct)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), authenticatedUser, userStruct)))
 	})
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
@@ -97,13 +96,6 @@ func New(r *http.Request, userName string) (*sessions.Session, error) {
 	return sess, nil
 }
 
-func SetHeaders(w http.ResponseWriter, user *users.User) {
-	w.Header().Set(submithttp.SubmitSessionUser, user.UserName)
-	w.Header().Set(submithttp.SubmitSessionRoles, fmt.Sprintf("%v", user.Roles.Slice()))
-	w.Header().Set(submithttp.SubmitSessionStaffCourses,  fmt.Sprintf("%v", user.CoursesAsStaff.Slice()))
-	w.Header().Set(submithttp.SubmitSessionStudentCourses,  fmt.Sprintf("%v", user.CoursesAsStudent.Slice()))
-}
-
 func writeErr(w http.ResponseWriter, errStr string, logger *logrus.Entry) {
 	w.WriteHeader(http.StatusInternalServerError)
 	type resp struct {
@@ -140,6 +132,18 @@ func LoginHandler(logger *logrus.Entry) func (w http.ResponseWriter, r *http.Req
 		w.WriteHeader(http.StatusOK)
 		if _, err := w.Write(ldBytes); err != nil && logger != nil {
 			logger.WithError(err).Error("error writing login data")
+		}
+	}
+}
+
+func InitSessionForTest() func() {
+	dir := os.TempDir()
+	if err := Init(dir); err != nil {
+		panic(err)
+	}
+	return func() {
+		if err := os.RemoveAll(filepath.Join(dir, sessionKeyFileName)); err != nil {
+			panic(err)
 		}
 	}
 }

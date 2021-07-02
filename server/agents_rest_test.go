@@ -11,6 +11,7 @@ import (
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
 	"github.com/DAv10195/submit_server/elements/users"
+	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
 	"net/http"
 	"net/http/httptest"
@@ -23,6 +24,8 @@ import (
 func TestAgentRestHandlers(t *testing.T) {
 	cleanup := db.InitDbForTest()
 	defer cleanup()
+	cleanupSess := session.InitSessionForTest()
+	defer cleanupSess()
 	if err := users.InitDefaultAdmin(); err != nil {
 		t.Fatalf("error initialiting admin user for test: %v", err)
 	}
