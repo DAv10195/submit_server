@@ -255,7 +255,7 @@ func TestTestHandlers(t *testing.T) {
 			nil,
 		},
 		{
-			"test update test status as student 1",
+			"test update test status as student to in review",
 			http.MethodPatch,
 			fmt.Sprintf("/%s/1/%d/ass/test1", db.Tests, year),
 			http.StatusOK,
@@ -264,7 +264,7 @@ func TestTestHandlers(t *testing.T) {
 			nil,
 		},
 		{
-			"test update test status as student 2",
+			"test update test status as student to published",
 			http.MethodPatch,
 			fmt.Sprintf("/%s/1/%d/ass/test1", db.Tests, year),
 			http.StatusForbidden,
