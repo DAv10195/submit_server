@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/DAv10195/submit_commons/containers"
+	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/messages"
 	"github.com/DAv10195/submit_server/fs"
@@ -50,6 +51,45 @@ func Get(id string) (*Test, error) {
 	test := &Test{}
 	if err := json.Unmarshal(testyBytes, test); err != nil {
 		return nil, err
+	}
+	return test, nil
+}
+
+func New(asUser, assDef, name string, runsOn int, withDbUpdate, withFsUpdate bool) (*Test, error) {
+	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(assDef))
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, &db.ErrKeyNotFoundInBucket{Bucket: db.AssignmentDefinitions, Key: assDef}
+	}
+	testKey := fmt.Sprintf("%s%s%s", assDef, db.KeySeparator, name)
+	exists, err = db.KeyExistsInBucket([]byte(db.Tests), []byte(testKey))
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Tests, Key: testKey}
+	}
+	if runsOn != OnDemand && runsOn != OnSubmit {
+		return nil, fmt.Errorf("invalid runs on value given for test creation ('%d')", runsOn)
+	}
+	if withFsUpdate {
+		split := strings.Split(assDef, db.KeySeparator)
+		if len(split) != 3 {
+			return nil, fmt.Errorf("invalid assignment def key ('%s')", assDef)
+		}
+		if err := fs.GetClient().UploadTextToFS(strings.Join([]string{db.Courses, split[0], split[1], name, "tests", name, submithttp.FsPlaceHolderFileName}, "/"), []byte("")); err != nil {
+			return nil, err
+		}
+	}
+	test := &Test{Name: name, State: Draft, Files: containers.NewStringSet(), AssignmentDef: assDef, RunsOn: runsOn}
+	if withDbUpdate {
+		msgBox := messages.NewMessageBox()
+		test.MessageBox = msgBox.ID
+		if err := db.Update(asUser, msgBox, test); err != nil {
+			return nil, err
+		}
 	}
 	return test, nil
 }
