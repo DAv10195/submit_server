@@ -150,6 +150,8 @@ func handleUpdateAssignmentDef(w http.ResponseWriter, r *http.Request) {
 	updatedAss.Course = preUpdateAss.Course
 	updatedAss.State = preUpdateAss.State
 	updatedAss.Name = preUpdateAss.Name
+	updatedAss.CreatedOn = preUpdateAss.CreatedOn
+	updatedAss.CreatedBy = preUpdateAss.CreatedBy
 	var elementsToUpdate []db.IBucketElement
 	if updatedAss.DueBy != preUpdateAss.DueBy {
 		if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_ []byte, assInstBytes []byte) error {

@@ -165,8 +165,15 @@ func handleUpdateCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	updatedCourse.Number = number
-	updatedCourse.Year = year
+	preUpdateCourse, err := courses.Get(courseKey)
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	updatedCourse.Number = preUpdateCourse.Number
+	updatedCourse.Year = preUpdateCourse.Year
+	updatedCourse.CreatedOn = preUpdateCourse.CreatedOn
+	updatedCourse.CreatedBy = preUpdateCourse.CreatedBy
 	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, updatedCourse); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
