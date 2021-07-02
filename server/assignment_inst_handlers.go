@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 func getAssInstKey(r *http.Request) (string, error) {
@@ -233,6 +234,10 @@ func handleSubmitAssignmentInst(w http.ResponseWriter, r *http.Request) {
 	}
 	if assInst.State == assignments.Graded {
 		writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("assignment instance '%s' already graded", string(assInst.Key())))
+		return
+	}
+	if time.Now().UTC().After(assInst.DueBy) {
+		writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("assignment instance '%s' can't be submitted anymore", string(assInst.Key())))
 		return
 	}
 	assInst.State = assignments.Submitted
