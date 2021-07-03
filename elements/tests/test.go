@@ -79,7 +79,7 @@ func New(asUser, assDef, name string, runsOn int, withDbUpdate, withFsUpdate boo
 		if len(split) != 3 {
 			return nil, fmt.Errorf("invalid assignment def key ('%s')", assDef)
 		}
-		if err := fs.GetClient().UploadTextToFS(strings.Join([]string{db.Courses, split[0], split[1], name, "tests", name, submithttp.FsPlaceHolderFileName}, "/"), []byte("")); err != nil {
+		if err := fs.GetClient().UploadTextToFS(strings.Join([]string{db.Courses, split[0], split[1], split[2], "tests", name, submithttp.FsPlaceHolderFileName}, "/"), []byte("")); err != nil {
 			return nil, err
 		}
 	}

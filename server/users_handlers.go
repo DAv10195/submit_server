@@ -164,6 +164,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	updatedUser.Password = preUpdateUser.Password
+	updatedUser.MessageBox = preUpdateUser.MessageBox
 	updatedUser.CreatedOn = preUpdateUser.CreatedOn
 	updatedUser.CreatedBy = preUpdateUser.CreatedBy
 	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, updatedUser); err != nil {

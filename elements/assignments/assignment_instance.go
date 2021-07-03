@@ -101,7 +101,7 @@ func NewInstance(course string, dueBy time.Time, assName string, userName string
 			return nil, err
 		}
 	}
-	ass := &AssignmentInstance{UserName: userName, AssignmentDef: assDefKey, State: Assigned, DueBy: dueBy}
+	ass := &AssignmentInstance{UserName: userName, AssignmentDef: assDefKey, State: Assigned, DueBy: dueBy, Files: containers.NewStringSet()}
 	if withDbUpdate {
 		if err := db.Update(asUser, ass); err != nil {
 			return nil, err
