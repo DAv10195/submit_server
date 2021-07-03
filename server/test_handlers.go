@@ -138,7 +138,7 @@ func handleCreateTest(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := tests.New(r.Context().Value(authenticatedUser).(*users.User).UserName, test.AssignmentDef, test.Name, test.RunsOn, true, fs.GetClient() != nil); err != nil {
+	if _, err := tests.New(r.Context().Value(authenticatedUser).(*users.User).UserName, test.AssignmentDef, test.Name, test.Command, test.RunsOn, true, fs.GetClient() != nil); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}

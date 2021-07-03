@@ -2,6 +2,7 @@ package tests
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/DAv10195/submit_commons/containers"
 	submithttp "github.com/DAv10195/submit_commons/http"
@@ -28,6 +29,7 @@ const (
 type Test struct {
 	db.ABucketElement
 	Name			string					`json:"name"`
+	Command			string					`json:"command"`
 	State			int						`json:"state"`
 	Files			*containers.StringSet	`json:"files"`
 	AssignmentDef	string					`json:"assignment_def"`
@@ -55,7 +57,7 @@ func Get(id string) (*Test, error) {
 	return test, nil
 }
 
-func New(asUser, assDef, name string, runsOn int, withDbUpdate, withFsUpdate bool) (*Test, error) {
+func New(asUser, assDef, name, command string, runsOn int, withDbUpdate, withFsUpdate bool) (*Test, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(assDef))
 	if err != nil {
 		return nil, err
@@ -71,6 +73,9 @@ func New(asUser, assDef, name string, runsOn int, withDbUpdate, withFsUpdate boo
 	if exists {
 		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Tests, Key: testKey}
 	}
+	if command == "" {
+		return nil, errors.New("empty command given for test")
+	}
 	if runsOn != OnDemand && runsOn != OnSubmit {
 		return nil, fmt.Errorf("invalid runs on value given for test creation ('%d')", runsOn)
 	}
@@ -83,7 +88,7 @@ func New(asUser, assDef, name string, runsOn int, withDbUpdate, withFsUpdate boo
 			return nil, err
 		}
 	}
-	test := &Test{Name: name, State: Draft, Files: containers.NewStringSet(), AssignmentDef: assDef, RunsOn: runsOn}
+	test := &Test{Name: name, Command: command, State: Draft, Files: containers.NewStringSet(), AssignmentDef: assDef, RunsOn: runsOn}
 	if withDbUpdate {
 		msgBox := messages.NewMessageBox()
 		test.MessageBox = msgBox.ID
@@ -110,7 +115,7 @@ func Delete(t *Test, withFsUpdate bool) error {
 		if len(split) != 3 {
 			return fmt.Errorf("invalid assignment def key ('%s')", t.AssignmentDef)
 		}
-		if err := fs.GetClient().Delete(strings.Join([]string{db.Courses, split[0], split[1], split[2], "tests"}, "/")); err != nil {
+		if err := fs.GetClient().Delete(strings.Join([]string{db.Courses, split[0], split[1], split[2], "tests", t.Name}, "/")); err != nil {
 			return err
 		}
 	}

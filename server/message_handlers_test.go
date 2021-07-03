@@ -38,7 +38,7 @@ func TestMessageHandlers(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		panic("error publishing assignment for test")
 	}
-	req, err = http.NewRequest(http.MethodPost, fmt.Sprintf("/%s/", db.Tests), bytes.NewBuffer([]byte(fmt.Sprintf(`{"assignment_def":"1:%d:ass","runs_on":1,"name":"test"}`, year))))
+	req, err = http.NewRequest(http.MethodPost, fmt.Sprintf("/%s/", db.Tests), bytes.NewBuffer([]byte(fmt.Sprintf(`{"command":"test","assignment_def":"1:%d:ass","runs_on":1,"name":"test"}`, year))))
 	if err != nil {
 		panic(err)
 	}
