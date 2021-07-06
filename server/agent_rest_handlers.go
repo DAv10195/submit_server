@@ -142,8 +142,17 @@ func handleGetTaskResponses(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGetTaskResponse(w http.ResponseWriter, r *http.Request) {
-	requestedTaskResponseId := mux.Vars(r)[taskRespId]
-	requestedTaskResponse, err := agents.GetTaskResponse(requestedTaskResponseId)
+	taskId := mux.Vars(r)[taskId]
+	task, err := agents.GetTask(taskId)
+	if err != nil {
+		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
+			writeErrResp(w, r, http.StatusNotFound, err)
+		} else {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+		}
+		return
+	}
+	requestedTaskResponse, err := agents.GetTaskResponse(task.TaskResponse)
 	if err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
 			writeErrResp(w, r, http.StatusNotFound, err)
@@ -155,15 +164,27 @@ func handleGetTaskResponse(w http.ResponseWriter, r *http.Request) {
 	writeElem(w, r, http.StatusOK, requestedTaskResponse)
 }
 
-func handlePostTask(w http.ResponseWriter, r *http.Request) {
+type ResponseWithTaskId struct {
+	Message		string		`json:"message"`
+	TaskId		string		`json:"task_id"`
+}
+
+func (e *ResponseWithTaskId) String() string {
+	return _stringForResp(e)
+}
+
+func handlePostOnDemandTask(w http.ResponseWriter, r *http.Request) {
 	task := &agents.Task{}
 	if err := json.NewDecoder(r.Body).Decode(task); err != nil {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
 	builder := agents.NewTaskBuilder(r.Context().Value(authenticatedUser).(*users.User).UserName, true)
-	builder.WithOsType(task.OsType).WithArchitecture(task.Architecture).WithCommand(task.Command).WithResponseHandler(task.ResponseHandler).
-		WithExecTimeout(task.ExecTimeout).WithDependencies(task.Dependencies.Slice()...).WithAgent(task.Agent)
+	builder.WithOsType(task.OsType).WithArchitecture(task.Architecture).WithCommand(task.Command).WithResponseHandler(onDemandTask).
+		WithExecTimeout(task.ExecTimeout).WithAgent(task.Agent)
+	if task.Dependencies != nil {
+		builder.WithDependencies(task.Dependencies.Slice()...)
+	}
 	for name, value := range task.Labels {
 		builder.WithLabel(name, value)
 	}
@@ -172,5 +193,5 @@ func handlePostTask(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"task created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &ResponseWithTaskId{Message: "task created successfully", TaskId: task.ID})
 }

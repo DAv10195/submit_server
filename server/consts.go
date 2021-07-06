@@ -21,7 +21,6 @@ const (
 	numTaskProcWorkers		= 10
 	taskProcessingTimeout	= 120
 	taskId					= "taskId"
-	taskRespId				= "taskRespId"
 
 	trueStr					= "true"
 
@@ -31,4 +30,6 @@ const (
 	assDefName				= "assDefName"
 
 	testName				= "testName"
+
+	onDemandTask			= "on_demand_task"
 )

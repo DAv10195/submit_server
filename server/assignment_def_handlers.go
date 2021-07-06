@@ -124,7 +124,7 @@ func handleCreateAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"assignment def created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "assignment def created successfully"})
 }
 
 func handleUpdateAssignmentDef(w http.ResponseWriter, r *http.Request) {
@@ -176,7 +176,7 @@ func handleUpdateAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{fmt.Sprintf("assignment def '%s' updated successfully", updatedAss.Name)})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: fmt.Sprintf("assignment def '%s' updated successfully", updatedAss.Name)})
 }
 
 func handleDeleteAssignmentDef(w http.ResponseWriter, r *http.Request) {
@@ -198,7 +198,7 @@ func handleDeleteAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("assignment def '%s' deleted successfully", ass.Name)})
+	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("assignment def '%s' deleted successfully", ass.Name)})
 }
 
 func handlePublishAssignmentDef(w http.ResponseWriter, r *http.Request) {
@@ -250,7 +250,7 @@ func handlePublishAssignmentDef(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("assignment def '%s' published successfully", assDef.Name)})
+	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("assignment def '%s' published successfully", assDef.Name)})
 }
 
 func initAssDefsRouter(r *mux.Router, manager *authManager) {

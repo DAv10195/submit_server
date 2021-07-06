@@ -142,7 +142,7 @@ func handleCreateTest(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"test created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "test created successfully"})
 }
 
 func handleGetTest(w http.ResponseWriter, r *http.Request) {
@@ -193,7 +193,7 @@ func handleUpdateTest(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{fmt.Sprintf("test '%s' updated successfully", updatedTest.Name)})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: fmt.Sprintf("test '%s' updated successfully", updatedTest.Name)})
 }
 
 func handleDeleteTest(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +215,7 @@ func handleDeleteTest(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("test '%s' deleted successfully", test.Name)})
+	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("test '%s' deleted successfully", test.Name)})
 }
 
 func handleUpdateTestState(w http.ResponseWriter, r *http.Request) {
@@ -249,7 +249,7 @@ func handleUpdateTestState(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("test '%s' state updated successfully", string(test.Key()))})
+	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("test '%s' state updated successfully", string(test.Key()))})
 }
 
 func initTestsRouter(r *mux.Router, m *authManager) {

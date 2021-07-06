@@ -200,7 +200,7 @@ func handleUpdateAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{fmt.Sprintf("assignment instance '%s' updated successfully", string(updatedAss.Key()))})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: fmt.Sprintf("assignment instance '%s' updated successfully", string(updatedAss.Key()))})
 }
 
 func handleSubmitAssignmentInst(w http.ResponseWriter, r *http.Request) {
@@ -235,7 +235,7 @@ func handleSubmitAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("assignment instance '%s' submitted successfully", string(assInst.Key()))})
+	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("assignment instance '%s' submitted successfully", string(assInst.Key()))})
 }
 
 func initAssInstsRouter(r *mux.Router, manager *authManager) {

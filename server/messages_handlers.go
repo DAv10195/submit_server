@@ -125,7 +125,7 @@ func handlePostMessageToUser(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"message created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "message created successfully"})
 }
 
 func handleGetMessageBoxForAppeal(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +215,7 @@ func handlePostMessageToAppeal(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"message created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "message created successfully"})
 }
 
 func handleGetMessageBoxForTest(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +305,7 @@ func handlePostMessageToTest(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"message created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "message created successfully"})
 }
 
 func initMessagesRouter(r *mux.Router, m *authManager) {

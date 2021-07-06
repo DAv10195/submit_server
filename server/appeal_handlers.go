@@ -180,7 +180,7 @@ func handleCreateAppeal(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"appeal created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "appeal created successfully"})
 }
 
 func handleUpdateAppealState(w http.ResponseWriter, r *http.Request) {

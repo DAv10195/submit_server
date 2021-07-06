@@ -141,7 +141,7 @@ func handleCreateCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{"course created successfully"})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "course created successfully"})
 }
 
 func handleUpdateCourse(w http.ResponseWriter, r *http.Request) {
@@ -178,7 +178,7 @@ func handleUpdateCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{fmt.Sprintf("course '%s' updated successfully", courseKey)})
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: fmt.Sprintf("course '%s' updated successfully", courseKey)})
 }
 
 func handleDeleteCourse(w http.ResponseWriter, r *http.Request) {
@@ -200,7 +200,7 @@ func handleDeleteCourse(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
 	}
-	writeResponse(w, r, http.StatusOK, &Response{fmt.Sprintf("course '%d%s%d' deleted successfully", number, db.KeySeparator, year)})
+	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("course '%d%s%d' deleted successfully", number, db.KeySeparator, year)})
 }
 
 // configure the courses router

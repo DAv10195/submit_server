@@ -9,31 +9,35 @@ import (
 
 const logHttpErrFormat = "error serving http request for %s"
 
+func _stringForResp(e interface{}) string {
+	errRespBytes, _ := json.Marshal(e)
+	return string(errRespBytes)
+}
+
 type Response struct {
 	Message	string	`json:"message"`
 }
 
 func (e *Response) String() string {
-	errRespBytes, _ := json.Marshal(e)
-	return string(errRespBytes)
+	return _stringForResp(e)
 }
 
-func writeResponse(w http.ResponseWriter, r *http.Request, httpStatus int, response *Response) {
+func writeResponse(w http.ResponseWriter, r *http.Request, httpStatus int, stringer fmt.Stringer) {
 	w.WriteHeader(httpStatus)
-	if _, err := w.Write([]byte(response.String())); err != nil {
+	if _, err := w.Write([]byte(stringer.String())); err != nil {
 		logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
 	}
 }
 
 func writeErrResp(w http.ResponseWriter, r *http.Request, httpStatus int, err error) {
 	logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-	writeResponse(w, r, httpStatus, &Response{err.Error()})
+	writeResponse(w, r, httpStatus, &Response{Message: err.Error()})
 }
 
 func writeStrErrResp(w http.ResponseWriter, r *http.Request, httpStatus int, str string) {
 	err := fmt.Errorf(str)
 	logger.WithError(err).Errorf(logHttpErrFormat, r.URL.Path)
-	writeResponse(w, r, httpStatus, &Response{err.Error()})
+	writeResponse(w, r, httpStatus, &Response{Message: err.Error()})
 }
 
 func writeElem(w http.ResponseWriter, r *http.Request, httpStatus int, e db.IBucketElement) {

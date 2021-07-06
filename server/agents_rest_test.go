@@ -260,22 +260,33 @@ func TestTaskRestHandlers(t *testing.T) {
 func TestTaskRespRestHandlers(t *testing.T) {
 	cleanup := db.InitDbForTest()
 	defer cleanup()
+	sessCleanup := session.InitSessionForTest()
+	defer sessCleanup()
 	if err := users.InitDefaultAdmin(); err != nil {
 		t.Fatalf("error initialiting admin user for test: %v", err)
 	}
-	taskRespId := submit_commons.GenerateUniqueId()
+	taskKey, taskRespKey := submit_commons.GenerateUniqueId(), submit_commons.GenerateUniqueId()
+	task := &agents.Task{
+		ID:              		taskKey,
+		Command: 				"mock",
+		ResponseHandler: 		"mock",
+		ExecTimeout: 			1,
+		Status: 				agents.TaskStatusDone,
+		Dependencies: 			containers.NewStringSet(),
+		TaskResponse:			taskRespKey,
+	}
 	taskResponse := &agents.TaskResponse{
-		ID: taskRespId,
+		ID: taskRespKey,
 		Payload: "mock",
 		Handler: "mock",
 	}
-	if err := db.Update(db.System, taskResponse); err != nil {
+	if err := db.Update(db.System, task, taskResponse); err != nil {
 		t.Fatalf("error updating db with agent for test: %v", err)
 	}
 	if _, err := users.NewUserBuilder(db.System, true).WithUserName(users.Secretary).WithPassword(users.Secretary).WithRoles(users.Secretary).Build(); err != nil {
 		t.Fatalf("error creating secretary user for agent rest test: %v", err)
 	}
-	allTasksPath, taskPath := fmt.Sprintf("/%s/", db.TaskResponses), fmt.Sprintf("/%s/%s", db.TaskResponses, taskRespId)
+	allTasksPath, taskPath := fmt.Sprintf("/%s/", db.TaskResponses), fmt.Sprintf("/%s/%s", db.TaskResponses, taskKey)
 	testCases := []struct{
 		name	string
 		method	string
