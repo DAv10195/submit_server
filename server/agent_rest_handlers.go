@@ -152,6 +152,16 @@ func handleGetTaskResponse(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if task.Status == agents.TaskStatusTimeout {
+		writeStrErrResp(w, r, http.StatusRequestTimeout, task.Description)
+		return
+	} else if task.Status == agents.TaskStatusError {
+		writeStrErrResp(w, r, http.StatusInternalServerError, task.Description)
+		return
+	} else if task.Status != agents.TaskStatusOk {
+		writeResponse(w, r, http.StatusAccepted, &Response{Message: "in progress"})
+		return
+	}
 	requestedTaskResponse, err := agents.GetTaskResponse(task.TaskResponse)
 	if err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {

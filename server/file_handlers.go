@@ -393,6 +393,13 @@ func handlePostFileForAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if ass.State == assignments.Submitted {
+		writeStrErrResp(w, r, http.StatusBadRequest, "can't upload file for a submitted assignment instance")
+		return
+	} else if ass.State == assignments.Graded {
+		writeStrErrResp(w, r, http.StatusBadRequest, "can't upload file for a graded assignment instance")
+		return
+	}
 	fileNames, err := getFileNamesInRequest(r)
 	if err != nil {
 		writeErrResp(w, r, http.StatusBadRequest, err)
@@ -468,6 +475,13 @@ func handleDeleteFileForAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		} else {
 			writeErrResp(w, r, http.StatusInternalServerError, err)
 		}
+		return
+	}
+	if ass.State == assignments.Submitted {
+		writeStrErrResp(w, r, http.StatusBadRequest, "can't delete file for a submitted assignment instance")
+		return
+	} else if ass.State == assignments.Graded {
+		writeStrErrResp(w, r, http.StatusBadRequest, "can't delete file for a graded assignment instance")
 		return
 	}
 	fileName := r.Header.Get(submithttp.SubmitFile)

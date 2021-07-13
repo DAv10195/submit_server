@@ -32,4 +32,7 @@ const (
 	testName				= "testName"
 
 	onDemandTask			= "on_demand_task"
+	testTask				= "test_task"
+	assInstUsrName			= "ass_inst_user_name"
+	onSubmitExec			= "on_submit_exec"
 )

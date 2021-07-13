@@ -6,6 +6,7 @@ import (
 	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/assignments"
+	"github.com/DAv10195/submit_server/elements/tests"
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -231,9 +232,41 @@ func handleSubmitAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	assInst.State = assignments.Submitted
-	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, assInst); err != nil {
+	requestUserName := r.Context().Value(authenticatedUser).(*users.User).UserName
+	if err := db.Update(requestUserName, assInst); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
+	}
+	var testsToRun []string
+	if err := db.QueryBucket([]byte(db.Tests), func (_, testBytes []byte) error {
+		test := &tests.Test{}
+		if err := json.Unmarshal(testBytes, test); err != nil {
+			return err
+		}
+		if test.RunsOn == tests.OnSubmit {
+			testsToRun = append(testsToRun, string(test.Key()))
+		}
+		return nil
+	}); err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	for _, testToRun := range testsToRun {
+		tr, err := NewTestRequest(testToRun, assKey, true)
+		if err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		task, err := tr.ToTask(requestUserName, false)
+		if err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		task.Labels[onSubmitExec] = true
+		if err := db.Update(requestUserName, task); err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
 	}
 	writeResponse(w, r, http.StatusOK, &Response{Message: fmt.Sprintf("assignment instance '%s' submitted successfully", string(assInst.Key()))})
 }

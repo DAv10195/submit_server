@@ -271,7 +271,7 @@ func TestTaskRespRestHandlers(t *testing.T) {
 		Command: 				"mock",
 		ResponseHandler: 		"mock",
 		ExecTimeout: 			1,
-		Status: 				agents.TaskStatusDone,
+		Status: 				agents.TaskStatusOk,
 		Dependencies: 			containers.NewStringSet(),
 		TaskResponse:			taskRespKey,
 	}

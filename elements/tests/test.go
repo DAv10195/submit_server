@@ -35,6 +35,9 @@ type Test struct {
 	AssignmentDef	string					`json:"assignment_def"`
 	RunsOn			int						`json:"runs_on"`
 	MessageBox		string					`json:"message_box"`
+	OsType			string					`json:"os_type"`
+	Architecture	string					`json:"architecture"`
+	ExecTimeout		int						`json:"timeout"`
 }
 
 func (t *Test) Key() []byte {
@@ -57,7 +60,7 @@ func Get(id string) (*Test, error) {
 	return test, nil
 }
 
-func New(asUser, assDef, name, command string, runsOn int, withDbUpdate, withFsUpdate bool) (*Test, error) {
+func New(asUser, assDef, name, command, osType, architecture string, timeout, runsOn int, withDbUpdate, withFsUpdate bool) (*Test, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(assDef))
 	if err != nil {
 		return nil, err
@@ -79,6 +82,9 @@ func New(asUser, assDef, name, command string, runsOn int, withDbUpdate, withFsU
 	if runsOn != OnDemand && runsOn != OnSubmit {
 		return nil, fmt.Errorf("invalid runs on value given for test creation ('%d')", runsOn)
 	}
+	if timeout <= 0 {
+		return nil, errors.New("test execution timeout should be > 0")
+	}
 	if withFsUpdate {
 		split := strings.Split(assDef, db.KeySeparator)
 		if len(split) != 3 {
@@ -88,7 +94,7 @@ func New(asUser, assDef, name, command string, runsOn int, withDbUpdate, withFsU
 			return nil, err
 		}
 	}
-	test := &Test{Name: name, Command: command, State: Draft, Files: containers.NewStringSet(), AssignmentDef: assDef, RunsOn: runsOn}
+	test := &Test{Name: name, Command: command, State: Draft, Files: containers.NewStringSet(), AssignmentDef: assDef, RunsOn: runsOn, OsType: osType, Architecture: architecture, ExecTimeout: timeout}
 	if withDbUpdate {
 		msgBox := messages.NewMessageBox()
 		test.MessageBox = msgBox.ID

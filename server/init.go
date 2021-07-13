@@ -22,6 +22,7 @@ func InitServer(port int, wg *sync.WaitGroup, ctx context.Context) *http.Server 
 	initAssInstsRouter(baseRouter, am)
 	initAppealsRouter(baseRouter, am)
 	initTestsRouter(baseRouter, am)
+	initTestRequestsRouter(baseRouter, am)
 	initMessagesRouter(baseRouter, am)
 	initFilesRouter(baseRouter, am)
 	initAgentsBackend(baseRouter, am, ctx, wg)
