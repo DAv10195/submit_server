@@ -176,6 +176,15 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	if updatedUser.CoursesAsStaff == nil {
 		updatedUser.CoursesAsStaff = preUpdateUser.CoursesAsStaff
 	}
+	if updatedUser.FirstName == "" {
+		updatedUser.FirstName = preUpdateUser.FirstName
+	}
+	if updatedUser.LastName == "" {
+		updatedUser.LastName = preUpdateUser.LastName
+	}
+	if updatedUser.Email == "" {
+		updatedUser.Email = preUpdateUser.Email
+	}
 	if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, updatedUser); err != nil {
 		writeErrResp(w, r, http.StatusInternalServerError, err)
 		return
