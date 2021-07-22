@@ -71,7 +71,8 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if err := fs.Init(viper.GetString(flagFileServerHost), viper.GetInt(flagFileServerPort), viper.GetString(flagFileServerUser), fsPwd); err != nil {
+
+			if err := fs.Init(viper.GetString(flagFileServerHost), viper.GetInt(flagFileServerPort), viper.GetString(flagFileServerUser), fsPwd, viper.GetBool(flagFsUseTls), viper.GetString(flagTrustedCaFile), viper.GetBool(flagSkipTlsVerify)); err != nil {
 				return err
 			}
 			if err := session.Init(dir); err != nil {
@@ -131,6 +132,8 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	viper.SetDefault(flagFileServerPort, defFileServerPort)
 	viper.SetDefault(flagFileServerUser, defFileServerUser)
 	viper.SetDefault(flagFileServerPassword, defFileServerPassword)
+	viper.SetDefault(flagSkipTlsVerify, defSkipTlsVerify)
+	viper.SetDefault(flagFsUseTls, defFsUseTls)
 	startCmd.Flags().AddFlagSet(configFlagSet)
 	startCmd.Flags().Int(flagLogFileMaxBackups, viper.GetInt(flagLogFileMaxBackups), "maximum number of log file rotations")
 	startCmd.Flags().Int(flagLogFileMaxSize, viper.GetInt(flagLogFileMaxSize), "maximum size of the log file before it's rotated")
@@ -146,6 +149,9 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	startCmd.Flags().String(flagFileServerPassword, viper.GetString(flagFileServerPassword), "password to be used when authenticating against submit file server")
 	startCmd.Flags().String(flagTlsCertFile, viper.GetString(flagTlsCertFile), "path to a file containing a certificate to use for tls")
 	startCmd.Flags().String(flagTlsKeyFile, viper.GetString(flagTlsKeyFile), "path to a file containing a key to use for tls")
+	startCmd.Flags().Bool(flagSkipTlsVerify, viper.GetBool(flagSkipTlsVerify), "skip tls verification")
+	startCmd.Flags().String(flagTrustedCaFile, viper.GetString(flagTrustedCaFile), "trusted ca bundle path")
+	startCmd.Flags().Bool(flagFsUseTls, viper.GetBool(flagFsUseTls), "use tls when accessing submit file server")
 	if err := viper.ReadInConfig(); err != nil && !os.IsNotExist(err) {
 		setupErr = err
 	}

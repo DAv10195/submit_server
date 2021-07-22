@@ -18,6 +18,8 @@ const (
 	defFileServerPort		= 8081
 	defFileServerUser		= "admin"
 	defFileServerPassword	= "admin"
+	defSkipTlsVerify		= false
+	defFsUseTls				= false
 
 	flagConfigFile        	= "config-file"
 	flagDbDir             	= "db-dir"
@@ -34,4 +36,7 @@ const (
 	flagFileServerPassword	= "file-server-password"
 	flagTlsCertFile			= "tls-cert-file"
 	flagTlsKeyFile			= "tls-key-file"
+	flagTrustedCaFile		= "trusted-ca-file"
+	flagSkipTlsVerify		= "skip-tls-verify"
+	flagFsUseTls			= "fs-use-tls"
 )
