@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/DAv10195/submit_server/session"
 	"github.com/gorilla/mux"
@@ -9,7 +10,7 @@ import (
 	"sync"
 )
 
-func InitServer(port int, wg *sync.WaitGroup, ctx context.Context) *http.Server {
+func InitServer(port int, tlsConf *tls.Config, wg *sync.WaitGroup, ctx context.Context) *http.Server {
 	logger.Info("initializing server...")
 	// configure router and middleware
 	baseRouter := mux.NewRouter()
@@ -32,10 +33,22 @@ func InitServer(port int, wg *sync.WaitGroup, ctx context.Context) *http.Server 
 		Handler:      baseRouter,
 		WriteTimeout: serverTimeout,
 		ReadTimeout:  serverTimeout,
+		TLSConfig:	  tlsConf,
 	}
 	server.RegisterOnShutdown(func () {
 		defer wg.Done()
 		agentEndpoints.close()
 	})
 	return server
+}
+
+func GetTlsConfig(certFilePath, keyFilePath string) (*tls.Config, error) {
+	if certFilePath != "" && keyFilePath != "" {
+		cert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
+		if err != nil {
+			return nil, err
+		}
+		return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+	}
+	return nil, nil
 }

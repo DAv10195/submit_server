@@ -80,11 +80,21 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			if err := users.InitDefaultAdmin(); err != nil {
 				return err
 			}
+			tlsConf, err := server.GetTlsConfig(viper.GetString(flagTlsCertFile), viper.GetString(flagTlsKeyFile))
+			if err != nil {
+				return err
+			}
 			wg := &sync.WaitGroup{}
 			wg.Add(1)
-			srv := server.InitServer(viper.GetInt(flagServerPort), wg, ctx)
+			srv := server.InitServer(viper.GetInt(flagServerPort), tlsConf, wg, ctx)
 			go func() {
-				if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+				var serverErr error
+				if tlsConf != nil {
+					serverErr = srv.ListenAndServeTLS("", "")
+				} else {
+					serverErr = srv.ListenAndServe()
+				}
+				if serverErr != http.ErrServerClosed {
 					logger.WithError(err).Fatal("submit server crashed")
 				}
 			}()
@@ -134,6 +144,8 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	startCmd.Flags().Int(flagFileServerPort, viper.GetInt(flagFileServerPort), "submit file server port")
 	startCmd.Flags().String(flagFileServerUser, viper.GetString(flagFileServerUser), "user to be used when authenticating against submit file server")
 	startCmd.Flags().String(flagFileServerPassword, viper.GetString(flagFileServerPassword), "password to be used when authenticating against submit file server")
+	startCmd.Flags().String(flagTlsCertFile, viper.GetString(flagTlsCertFile), "path to a file containing a certificate to use for tls")
+	startCmd.Flags().String(flagTlsKeyFile, viper.GetString(flagTlsKeyFile), "path to a file containing a key to use for tls")
 	if err := viper.ReadInConfig(); err != nil && !os.IsNotExist(err) {
 		setupErr = err
 	}

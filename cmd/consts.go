@@ -32,4 +32,6 @@ const (
 	flagFileServerPort		= "file-server-port"
 	flagFileServerUser		= "file-server-user"
 	flagFileServerPassword	= "file-server-password"
+	flagTlsCertFile			= "tls-cert-file"
+	flagTlsKeyFile			= "tls-key-file"
 )
