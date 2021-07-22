@@ -8,11 +8,12 @@ import (
 // task response
 type TaskResponse struct {
 	db.ABucketElement
-	ID			string	`json:"id"`
-	Payload		string	`json:"payload"`
-	Handler		string	`json:"handler"`
-	Task		string	`json:"task"`
-	ExecStatus	int		`json:"status"`
+	ID			string						`json:"id"`
+	Payload		string						`json:"payload"`
+	Handler		string						`json:"handler"`
+	Task		string						`json:"task"`
+	ExecStatus	int							`json:"status"`
+	Labels		map[string]interface{}		`json:"labels"`
 }
 
 func (t *TaskResponse) Key() []byte {

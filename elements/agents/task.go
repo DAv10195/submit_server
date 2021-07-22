@@ -53,6 +53,7 @@ func (t *Task) GetWsMessage() (*submitws.Message, error) {
 	taskMsgPayload.Timeout = t.ExecTimeout
 	taskMsgPayload.Dependencies = t.Dependencies
 	taskMsgPayload.ResponseHandler = t.ResponseHandler
+	taskMsgPayload.Labels = t.Labels
 	payload, err := json.Marshal(taskMsgPayload)
 	if err != nil {
 		return nil, err

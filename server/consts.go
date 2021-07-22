@@ -35,4 +35,6 @@ const (
 	testTask				= "test_task"
 	assInstUsrName			= "ass_inst_user_name"
 	onSubmitExec			= "on_submit_exec"
+
+	mossCopyThreshold		= "moss_copy_threshold"
 )

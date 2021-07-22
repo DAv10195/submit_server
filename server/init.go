@@ -23,6 +23,7 @@ func InitServer(port int, wg *sync.WaitGroup, ctx context.Context) *http.Server 
 	initAppealsRouter(baseRouter, am)
 	initTestsRouter(baseRouter, am)
 	initTestRequestsRouter(baseRouter, am)
+	initMossRequestRouter(baseRouter, am)
 	initMessagesRouter(baseRouter, am)
 	initFilesRouter(baseRouter, am)
 	initAgentsBackend(baseRouter, am, ctx, wg)

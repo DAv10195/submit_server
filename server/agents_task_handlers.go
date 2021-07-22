@@ -3,6 +3,8 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	commons "github.com/DAv10195/submit_commons"
+	submitws "github.com/DAv10195/submit_commons/websocket"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/messages"
@@ -107,7 +109,34 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 	return db.Update(db.System, assInst)
 }
 
+func handleMossTask(payload []byte, labels map[string]interface{}) error {
+	mo := &submitws.MossOutput{}
+	if err := json.Unmarshal(payload, mo); err != nil {
+		return err
+	}
+	threshold := int(labels[mossCopyThreshold].(float64))
+	assignment := labels[assDefName].(string)
+	var assignmentsToMarkAsCopy []db.IBucketElement
+	for _, mop := range mo.Pairs {
+		if mop.Percentage1 >= threshold || mop.Percentage2 >= threshold {
+			ass1, err := assignments.GetInstance(fmt.Sprintf("%s%s%s", assignment, db.KeySeparator, mop.Name1))
+			if err != nil {
+				return err
+			}
+			ass2, err := assignments.GetInstance(fmt.Sprintf("%s%s%s", assignment, db.KeySeparator, mop.Name2))
+			if err != nil {
+				return err
+			}
+			ass1.MarkedAsCopy = true
+			ass2.MarkedAsCopy = true
+			assignmentsToMarkAsCopy = append(assignmentsToMarkAsCopy, ass1, ass2)
+		}
+	}
+	return db.Update(db.System, assignmentsToMarkAsCopy...)
+}
+
 func init() {
 	agentTaskRespHandlers[onDemandTask] = handleOnDemandTask
 	agentTaskRespHandlers[testTask] = handleTestTask
+	agentTaskRespHandlers[commons.Moss] = handleMossTask
 }

@@ -286,13 +286,14 @@ func (m *agentEndpointsManager) processTaskWithResponse(task *agents.Task) {
 		m.updateTaskWithDescriptionToErr(task, "response handler not found")
 		return
 	}
-	if err := handler([]byte(resp.Payload), task.Labels); err != nil {
+	if err := handler([]byte(resp.Payload), resp.Labels); err != nil {
 		logger.WithError(err).Errorf("agents tasks monitor: error handling response for task with id == %s", task.ID)
 		m.updateTaskWithDescriptionToErr(task, err.Error())
 		return
 	}
 	task.Description = fmt.Sprintf("successfully processed response using the following handler: %s", resp.Handler)
 	task.Status = agents.TaskStatusOk
+	task.Labels = resp.Labels
 	if err := db.Update(db.System, task); err != nil {
 		logger.WithError(err).Errorf("agents tasks monitor: error updating task with id = %s to done status", task.ID)
 	}
