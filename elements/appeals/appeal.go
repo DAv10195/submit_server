@@ -44,6 +44,7 @@ func Delete(appeal *Appeal) error {
 	return db.Delete(appeal)
 }
 
+// create a new appeal
 func New(assInst string, asUser string, withDbUpdate bool) (*Appeal, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentInstances), []byte(assInst))
 	if err != nil {

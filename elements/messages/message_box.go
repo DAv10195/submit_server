@@ -22,6 +22,7 @@ func (m *MessageBox) Bucket() []byte {
 	return []byte(db.MessageBoxes)
 }
 
+// create a new message box (no update in db)
 func NewMessageBox() *MessageBox {
 	return &MessageBox{
 		ID: commons.GenerateUniqueId(),
@@ -29,6 +30,7 @@ func NewMessageBox() *MessageBox {
 	}
 }
 
+// get message box by id
 func Get(id string) (*MessageBox, error) {
 	boxBytes, err := db.GetFromBucket([]byte(db.MessageBoxes), []byte(id))
 	if err != nil {

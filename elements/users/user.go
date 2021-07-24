@@ -95,43 +95,60 @@ type UserBuilder struct {
 	withDbUpdate	 bool
 }
 
+// return a new User builder
 func NewUserBuilder(asUser string, withDbUpdate bool) *UserBuilder{
 	return &UserBuilder{roles: containers.NewStringSet(), coursesAsStaff: containers.NewStringSet(), coursesAsStudent: containers.NewStringSet(), asUser: asUser, withDbUpdate: withDbUpdate}
 }
 
+// set user name
 func (b *UserBuilder) WithUserName(userName string) *UserBuilder {
 	b.userName = userName
 	return b
 }
+
+// set first name
 func (b *UserBuilder) WithFirstName(firstName string) *UserBuilder {
 	b.firstName = firstName
 	return b
 }
+
+// set password
 func (b *UserBuilder) WithPassword(password string) *UserBuilder {
 	b.password = password
 	return b
 }
+
+// set last name
 func (b *UserBuilder) WithLastName(lastName string) *UserBuilder {
 	b.lastName = lastName
 	return b
 }
+
+// set email
 func (b *UserBuilder) WithEmail(email string) *UserBuilder {
 	b.email = email
 	return b
 }
+
+// add a course in which the built user will be a staff member
 func (b *UserBuilder) WithCoursesAsStaff(CoursesAsStaff ...string) *UserBuilder {
 	b.coursesAsStaff.Add(CoursesAsStaff...)
 	return b
 }
+
+// add a course in which the built user will be a student
 func (b *UserBuilder) WithCoursesAsStudent(CoursesAsStudent ...string) *UserBuilder {
 	b.coursesAsStudent.Add(CoursesAsStudent...)
 	return b
 }
+
+// add a role to the created user
 func (b *UserBuilder) WithRoles(roles ...string)*UserBuilder{
 	b.roles.Add(roles...)
 	return b
 }
 
+// build the user, performing the required operations (db update, fs update) and validations
 func (b *UserBuilder) Build() (*User, error) {
 	if b.userName == "" {
 		return nil, &submiterr.ErrInsufficientData{Message: "given user name can't be empty"}

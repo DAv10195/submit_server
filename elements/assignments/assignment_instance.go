@@ -32,6 +32,7 @@ type AssignmentInstance struct {
 	Grade			int						`json:"grade"`
 }
 
+// get ass instance by id
 func GetInstance(id string) (*AssignmentInstance, error) {
 	assBytes, err := db.GetFromBucket([]byte(db.AssignmentInstances), []byte(id))
 	if err != nil {
@@ -72,6 +73,7 @@ func DeleteInstance(ass *AssignmentInstance, withFsUpdate bool) error {
 	return nil
 }
 
+// create new assignment definition
 func NewInstance(course string, dueBy time.Time, assName string, userName string, asUser string, withDbUpdate bool, withFsUpdate bool) (*AssignmentInstance, error) {
 	assDefKey := fmt.Sprintf("%s%s%s", course, db.KeySeparator, assName)
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(assDefKey))
@@ -93,6 +95,7 @@ func NewInstance(course string, dueBy time.Time, assName string, userName string
 		return nil, errors.New("given due by time is before current UTC time")
 	}
 	if withFsUpdate {
+		// create a directory for the assignment instance in the submit file server
 		split := strings.Split(course, db.KeySeparator)
 		if len(split) != 2 {
 			return nil, fmt.Errorf("invalid course key ('%s')", course)

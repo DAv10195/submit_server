@@ -47,6 +47,7 @@ func NewCourse(number int, name string, asUser string, withDbUpdate bool, withFs
 		return nil, &db.ErrKeyExistsInBucket{Bucket: db.Courses, Key: courseKey}
 	}
 	if withFsUpdate {
+		// create a directory for the course in the submit file server
 		if err := fs.GetClient().UploadTextToFS(fmt.Sprintf("%s/%d/%d/%s", db.Courses, number, year, submithttp.FsPlaceHolderFileName), []byte("")); err != nil {
 			return nil, err
 		}

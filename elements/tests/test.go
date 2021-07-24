@@ -48,6 +48,7 @@ func (t *Test) Bucket() []byte {
 	return []byte(db.Tests)
 }
 
+// get test by id
 func Get(id string) (*Test, error) {
 	testyBytes, err := db.GetFromBucket([]byte(db.Tests), []byte(id))
 	if err != nil {
@@ -60,6 +61,7 @@ func Get(id string) (*Test, error) {
 	return test, nil
 }
 
+// create new test
 func New(asUser, assDef, name, command, osType, architecture string, timeout, runsOn int, withDbUpdate, withFsUpdate bool) (*Test, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(assDef))
 	if err != nil {
@@ -86,6 +88,7 @@ func New(asUser, assDef, name, command, osType, architecture string, timeout, ru
 		return nil, errors.New("test execution timeout should be > 0")
 	}
 	if withFsUpdate {
+		// create a directory fot the test in the submit file server
 		split := strings.Split(assDef, db.KeySeparator)
 		if len(split) != 3 {
 			return nil, fmt.Errorf("invalid assignment def key ('%s')", assDef)

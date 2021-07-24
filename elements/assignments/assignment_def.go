@@ -29,6 +29,7 @@ type AssignmentDef struct {
 	Files		*containers.StringSet	`json:"files"`
 }
 
+// get ass def by id
 func GetDef(id string) (*AssignmentDef, error) {
 	assBytes, err := db.GetFromBucket([]byte(db.AssignmentDefinitions), []byte(id))
 	if err != nil {
@@ -94,6 +95,7 @@ func DeleteDef(ass *AssignmentDef, withFsUpdate bool) error {
 	return nil
 }
 
+// create new assignment definition
 func NewDef(course string, dueBy time.Time, name string, asUser string, withDbUpdate bool, withFsUpdate bool) (*AssignmentDef, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.Courses), []byte(course))
 	if err != nil {

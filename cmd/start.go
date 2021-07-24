@@ -28,6 +28,7 @@ import (
 func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	var setupErr error
 	var configFilePath string
+	// create the command
 	startCmd := &cobra.Command{
 		Use: start,
 		Short: fmt.Sprintf("%s %s", start, submitServer),
@@ -40,6 +41,7 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			if setupErr != nil {
 				return setupErr
 			}
+			// define logging level and other configuration
 			logLevel := viper.GetString(flagLogLevel)
 			level, err := logrus.ParseLevel(logLevel)
 			if err != nil {
@@ -63,6 +65,7 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			} else {
 				logger.Debug("log file undefined")
 			}
+			// handle the DB dir
 			dir := viper.GetString(flagDbDir)
 			if err := db.InitDB(dir); err != nil {
 				return err
@@ -71,16 +74,19 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-
+			// initialize the submit file server client
 			if err := fs.Init(viper.GetString(flagFileServerHost), viper.GetInt(flagFileServerPort), viper.GetString(flagFileServerUser), fsPwd, viper.GetBool(flagFsUseTls), viper.GetString(flagTrustedCaFile), viper.GetBool(flagSkipTlsVerify)); err != nil {
 				return err
 			}
+			// initialize the session management
 			if err := session.Init(dir); err != nil {
 				return err
 			}
+			// make sure the default admin user exists
 			if err := users.InitDefaultAdmin(); err != nil {
 				return err
 			}
+			// run the server
 			tlsConf, err := server.GetTlsConfig(viper.GetString(flagTlsCertFile), viper.GetString(flagTlsKeyFile))
 			if err != nil {
 				return err
@@ -158,6 +164,7 @@ func newStartCommand(ctx context.Context, args []string) *cobra.Command {
 	return startCmd
 }
 
+// encrypt passwords if they are not encrypted yet
 func handleConfigEncryption(pwd, configFilePath string) (string, error) {
 	var writeToConfRequired bool
 	var err error
@@ -194,6 +201,7 @@ func handleConfigEncryption(pwd, configFilePath string) (string, error) {
 	return encryptedPassword, nil
 }
 
+// read the conf lines and return a list of them
 func readConfLines(configFilePath string) ([]string, error) {
 	confFile, err := os.Open(configFilePath)
 	if err != nil {
@@ -212,6 +220,7 @@ func readConfLines(configFilePath string) ([]string, error) {
 	return confLines, confScanner.Err()
 }
 
+// write the given conf lines to the given path
 func writeConfLines(confLines []string, configFilePath string) error {
 	confFile, err := os.Create(configFilePath)
 	if err != nil {

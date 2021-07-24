@@ -41,6 +41,7 @@ func InitDB(path string) error {
 	return nil
 }
 
+// initialize the buckets in the BoltDB
 func initBuckets() error {
 	return db.Update(func (tx *bolt.Tx) error {
 		for _, bucket := range buckets {

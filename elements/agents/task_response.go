@@ -24,6 +24,7 @@ func (t *TaskResponse) Bucket() []byte {
 	return []byte(db.TaskResponses)
 }
 
+// get task response by id
 func GetTaskResponse(id string) (*TaskResponse, error) {
 	respBytes, err := db.GetFromBucket([]byte(db.TaskResponses), []byte(id))
 	if err != nil {

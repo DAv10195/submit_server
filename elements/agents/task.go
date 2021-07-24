@@ -46,6 +46,7 @@ func (t *Task) Bucket() []byte {
 	return []byte(db.Tasks)
 }
 
+// return a websocket message representing the task
 func (t *Task) GetWsMessage() (*submitws.Message, error) {
 	taskMsgPayload := submitws.Task{}
 	taskMsgPayload.ID = t.ID
@@ -65,6 +66,7 @@ func (t *Task) GetWsMessage() (*submitws.Message, error) {
 	return msg, nil
 }
 
+// get a task by id
 func GetTask(id string) (*Task, error) {
 	taskBytes, err := db.GetFromBucket([]byte(db.Tasks), []byte(id))
 	if err != nil {
@@ -77,6 +79,7 @@ func GetTask(id string) (*Task, error) {
 	return task, nil
 }
 
+// builds tasks while performing the required validations
 type TaskBuilder struct {
 	OsType			string
 	Architecture	string
@@ -90,50 +93,60 @@ type TaskBuilder struct {
 	withDbUpdate	bool
 }
 
+// returns a new instance of TaskBuilder
 func NewTaskBuilder(asUser string, withDbUpdate bool) *TaskBuilder {
 	return &TaskBuilder{asUser: asUser, withDbUpdate: withDbUpdate, Dependencies: containers.NewStringSet(), Labels: make(map[string]interface{})}
 }
 
+// set os type to run task on
 func (b *TaskBuilder) WithOsType(osType string) *TaskBuilder {
 	b.OsType = osType
 	return b
 }
 
+// set architecture to run task on
 func (b *TaskBuilder) WithArchitecture(architecture string) *TaskBuilder {
 	b.Architecture = architecture
 	return b
 }
 
+// set command to run
 func (b *TaskBuilder) WithCommand(cmd string) *TaskBuilder {
 	b.Command = cmd
 	return b
 }
 
+// set the handler of the response returned after the execution
 func (b *TaskBuilder) WithResponseHandler(respHandler string) *TaskBuilder {
 	b.ResponseHandler = respHandler
 	return b
 }
 
+// set execution timeout
 func (b *TaskBuilder) WithExecTimeout(timeout int) *TaskBuilder {
 	b.ExecTimeout = timeout
 	return b
 }
 
+// add dependencies paths to download from the submit file server
 func (b *TaskBuilder) WithDependencies(dependencies ...string) *TaskBuilder {
 	b.Dependencies.Add(dependencies...)
 	return b
 }
 
+// set a specific agent id to run the task
 func (b *TaskBuilder) WithAgent(agentId string) *TaskBuilder {
 	b.Agent = agentId
 	return b
 }
 
+// add a label to the task
 func (b *TaskBuilder) WithLabel(name string, value interface{}) *TaskBuilder {
 	b.Labels[name] = value
 	return b
 }
 
+// build the task with the parameters set
 func (b *TaskBuilder) Build() (*Task, error) {
 	if b.Command == "" {
 		return nil, &submiterr.ErrInsufficientData{Message: "task can't have an empty command"}

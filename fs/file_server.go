@@ -11,6 +11,7 @@ import (
 
 var wrapper *fileServerClientWrapper
 
+// a wrapper for the file server client which also servers as the encryption manager for the fs password
 type fileServerClientWrapper struct {
 	client *fsclient.FileServerClient
 }
@@ -23,6 +24,7 @@ func (w *fileServerClientWrapper) Encrypt(unencryptedText string) (string, error
 	return db.Decrypt(unencryptedText)
 }
 
+// get the tls configuration for the fs client
 func getTlsConfig(trustCaFilePath string, skipTlsVerify bool) (*tls.Config, error) {
 	tlsConf := &tls.Config{InsecureSkipVerify: skipTlsVerify}
 	if trustCaFilePath != "" {
@@ -39,6 +41,7 @@ func getTlsConfig(trustCaFilePath string, skipTlsVerify bool) (*tls.Config, erro
 	return tlsConf, nil
 }
 
+// initialize the fs client
 func Init(fsHost string, fsPort int, fsUser string, fsPassword string, useTls bool, trustCaFilePath string, skipTlsVerify bool) error {
 	wrapper = &fileServerClientWrapper{}
 	var tlsConf *tls.Config
@@ -61,6 +64,7 @@ func Init(fsHost string, fsPort int, fsUser string, fsPassword string, useTls bo
 	return nil
 }
 
+// return the wrapped fs client instance
 func GetClient() *fsclient.FileServerClient {
 	if wrapper == nil || wrapper.client == nil {
 		return nil

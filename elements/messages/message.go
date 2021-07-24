@@ -21,6 +21,7 @@ func (m *Message) Bucket() []byte {
 	return []byte(db.Messages)
 }
 
+// create a new message in the box with the given id
 func NewMessage(from, text, boxId string, withDbUpdate bool) (*Message, error) {
 	msgBox, err := Get(boxId)
 	if err != nil {
