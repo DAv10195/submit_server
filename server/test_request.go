@@ -17,12 +17,14 @@ import (
 	"strings"
 )
 
+// test a single assignment instance or a definition if only a test is given
 type TestRequest struct {
 	Test					string		`json:"test"`
 	AssignmentInstance		string		`json:"assignment_instances"`
 	OnDemand				bool		`json:"on_demand"`
 }
 
+// test multiple assignment instances
 type MultiTestRequest struct {
 	Test					string					`json:"test"`
 	AssignmentInstances		*containers.StringSet	`json:"assignment_instances"`
@@ -45,6 +47,7 @@ func NewTestRequest(test, assInst string, onDemand bool) (*TestRequest, error) {
 	return &TestRequest{test, assInst, onDemand}, nil
 }
 
+// convert the test request to a task to be executed by an agent
 func (tr *TestRequest) ToTask(asUser string, withDbUpdate bool) (*agents.Task, error) {
 	testObj, err := tests.Get(tr.Test)
 	if err != nil {

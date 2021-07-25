@@ -15,6 +15,7 @@ type agentTaskResponseHandler func([]byte, map[string]interface{}) error
 
 var agentTaskRespHandlers = make(map[string]agentTaskResponseHandler)
 
+// no-op handler for on demand tasks
 func handleOnDemandTask(_ []byte, _ map[string]interface{}) error {
 	return nil
 }
@@ -24,6 +25,7 @@ type TestResponse struct {
 	Output		string		`json:"output"`
 }
 
+// handle task responses which represent a test execution
 func handleTestTask(payload []byte, labels map[string]interface{}) error {
 	tr := &TestResponse{}
 	if err := json.Unmarshal(payload, tr); err != nil {
@@ -40,6 +42,7 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 	if !ok {
 		return fmt.Errorf("test task handler: label '%s' has a non boolean value", onDemandTask)
 	}
+	// if this is an on demand test execution, then notify the user which triggered it that the test finished executing
 	if onDemand {
 		se, ok := labels[onSubmitExec]
 		if ok {
@@ -83,6 +86,7 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 		}
 		return nil
 	}
+	// well, not on demand, then mark the assignment as graded in the db
 	adname, ok := labels[assDefName]
 	if !ok {
 		return fmt.Errorf("test task handler: missing label '%s' in task labels", assDefName)
@@ -109,6 +113,7 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 	return db.Update(db.System, assInst)
 }
 
+// handle copy detection execution response
 func handleMossTask(payload []byte, labels map[string]interface{}) error {
 	mo := &submitws.MossOutput{}
 	if err := json.Unmarshal(payload, mo); err != nil {

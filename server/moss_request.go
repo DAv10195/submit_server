@@ -26,6 +26,7 @@ type MossRequest struct {
 	ExecTimeout			int						`json:"timeout"`
 }
 
+// convert the copy detection request to a task to be executed by some agent
 func (mr *MossRequest) ToTask(asUser string, withDbUpdate bool) (*agents.Task, error) {
 	exists, err := db.KeyExistsInBucket([]byte(db.AssignmentDefinitions), []byte(mr.AssignmentDef))
 	if err != nil {

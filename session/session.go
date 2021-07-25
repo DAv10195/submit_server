@@ -30,6 +30,7 @@ const (
 var ErrNotFound = errors.New("session not found")
 var ErrAlreadyExists = errors.New("session already exists")
 
+// login data to be returned for clients about their existing session
 type LoginData struct {
 	UserName 		string		`json:"user_name"`
 	Roles 			[]string	`json:"roles"`
@@ -39,6 +40,7 @@ type LoginData struct {
 
 var store *sessions.CookieStore
 
+// initialize sessions
 func Init(dir string) error {
 	key := make([]byte, keyLength)
 	keyFileName := filepath.Join(dir, sessionKeyFileName)
@@ -70,6 +72,7 @@ func Init(dir string) error {
 	return nil
 }
 
+// get a session from a http request
 func Get(r *http.Request) (*sessions.Session, error) {
 	sess, err := store.Get(r, submitCookie)
 	if err != nil {
@@ -83,6 +86,7 @@ func Get(r *http.Request) (*sessions.Session, error) {
 	return sess, nil
 }
 
+// create new session for the given request and user
 func New(r *http.Request, userName string) (*sessions.Session, error) {
 	sess, err := store.Get(r, submitCookie)
 	if err != nil {
@@ -96,6 +100,7 @@ func New(r *http.Request, userName string) (*sessions.Session, error) {
 	return sess, nil
 }
 
+// write an error
 func writeErr(w http.ResponseWriter, errStr string, logger *logrus.Entry) {
 	w.WriteHeader(http.StatusInternalServerError)
 	type resp struct {
@@ -108,6 +113,7 @@ func writeErr(w http.ResponseWriter, errStr string, logger *logrus.Entry) {
 	}
 }
 
+// handle login requests
 func LoginHandler(logger *logrus.Entry) func (w http.ResponseWriter, r *http.Request) {
 	return func (w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(authenticatedUser).(*users.User)

@@ -13,6 +13,7 @@ type agentMessageHandler func(string, []byte)
 
 var agentMsgHandlers = make(map[string]agentMessageHandler)
 
+// handle keepalive messages from agents
 func handleKeepalive(agentId string, payload []byte) {
 	logger.Debugf("keepalive handler: received keepalive message [ %s ] from agent with id == %s", string(payload), agentId)
 	var endpoint *agentEndpoint
@@ -60,6 +61,8 @@ func handleKeepalive(agentId string, payload []byte) {
 	}
 }
 
+// handle task responses from agents - update the task with the response and move it to done status so the
+// processing job will pick it up and process it
 func handleTaskResponses(agentId string, payload []byte) {
 	logger.Debugf("task responses handler: received task response message [ %s ] from agent with id == %s", string(payload), agentId)
 	var endpoint *agentEndpoint

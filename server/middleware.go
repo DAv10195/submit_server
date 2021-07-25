@@ -7,6 +7,7 @@ import (
 	"net/http"
 )
 
+// set content type of responses to application/json
 func contentTypeMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(ContentType, ApplicationJson)
@@ -17,6 +18,7 @@ func contentTypeMiddleware(next http.Handler) http.Handler {
 // authenticate incoming requests
 func authenticationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// check if a session exists
 		sess, err := session.Get(r)
 		if err == nil {
 			sess.Options.MaxAge = session.SubmitMaxCookieAge
