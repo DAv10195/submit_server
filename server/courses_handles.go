@@ -69,7 +69,7 @@ func handleGetCoursesForUser(forUser string, w http.ResponseWriter, r *http.Requ
 		if err := json.Unmarshal(elementBytes, course); err != nil {
 			return err
 		}
-		if user.CoursesAsStudent.Contains(string(course.Key())) || user.Roles.Contains(string(course.Key())) {
+		if user.CoursesAsStudent.Contains(string(course.Key())) || user.CoursesAsStaff.Contains(string(course.Key())) {
 			elementsIndex++
 			if elementsIndex <= params.AfterId {
 				return nil
