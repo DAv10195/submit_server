@@ -475,7 +475,7 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 		return user.Roles.Contains(users.Admin)
 	})
 	agentsRouter.HandleFunc(fmt.Sprintf("/{%s}", agentId), handleGetAgent).Methods(http.MethodGet)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", agentsBasePath)), func (user *users.User, _ *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", agentsBasePath)), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	tasksBasePath := fmt.Sprintf("/%s", db.Tasks)
@@ -486,7 +486,7 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 		return user.Roles.Contains(users.Admin)
 	})
 	tasksRouter.HandleFunc(fmt.Sprintf("/{%s}", taskId), handleGetTask).Methods(http.MethodGet)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", tasksBasePath)), func (user *users.User, _ *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", tasksBasePath)), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	taskResponsesBasePath := fmt.Sprintf("/%s", db.TaskResponses)
@@ -496,7 +496,7 @@ func initAgentsBackend(r *mux.Router, manager *authManager, ctx context.Context,
 		return user.Roles.Contains(users.Admin)
 	})
 	taskResponsesRouter.HandleFunc(fmt.Sprintf("/{%s}", taskId), handleGetTaskResponse).Methods(http.MethodGet)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", taskResponsesBasePath)), func (user *users.User, _ *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", taskResponsesBasePath)), func (user *users.User, _ *http.Request) bool {
 		return user.Roles.Contains(users.Admin)
 	})
 	wg.Add(2)

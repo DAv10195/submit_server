@@ -298,7 +298,7 @@ func initTestsRouter(r *mux.Router, m *authManager) {
 	router.HandleFunc(specificPath, handleDeleteTest).Methods(http.MethodDelete)
 	router.HandleFunc(specificPath, handleUpdateTest).Methods(http.MethodPut)
 	router.HandleFunc(specificPath, handleUpdateTestState).Methods(http.MethodPatch)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", basePath)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", basePath)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

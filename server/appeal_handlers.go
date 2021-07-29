@@ -258,7 +258,7 @@ func initAppealsRouter(r *mux.Router, m *authManager) {
 	specificPath := fmt.Sprintf("/{%s}/{%s}/{%s}/{%s}", courseNumber, courseYear, assDefName, userName)
 	router.HandleFunc(specificPath, handleGetAppeal).Methods(http.MethodGet)
 	router.HandleFunc(specificPath, handleUpdateAppealState).Methods(http.MethodPatch)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", basePath)), func(user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", basePath)), func(user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

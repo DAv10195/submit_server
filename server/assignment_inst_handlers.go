@@ -300,7 +300,7 @@ func initAssInstsRouter(r *mux.Router, manager *authManager) {
 	router.HandleFunc(specificPath, handleGetAssignmentInst).Methods(http.MethodGet)
 	router.HandleFunc(specificPath, handleUpdateAssignmentInst).Methods(http.MethodPut)
 	router.HandleFunc(specificPath, handleSubmitAssignmentInst).Methods(http.MethodPatch)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", basePath)), func (user *users.User, request *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", basePath)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

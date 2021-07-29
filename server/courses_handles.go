@@ -219,7 +219,7 @@ func initCoursesRouter(r *mux.Router, manager *authManager) {
 	coursesRouter.HandleFunc(specificCoursePath, handleGetCourse).Methods(http.MethodGet)
 	coursesRouter.HandleFunc(specificCoursePath, handleDeleteCourse).Methods(http.MethodDelete)
 	coursesRouter.HandleFunc(specificCoursePath, handleUpdateCourse).Methods(http.MethodPut)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", coursesBasePath)), func (user *users.User, r *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", coursesBasePath)), func (user *users.User, r *http.Request) bool {
 		if user.Roles.Contains(users.Admin) || user.Roles.Contains(users.Secretary) {
 			return true
 		}

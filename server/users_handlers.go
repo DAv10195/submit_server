@@ -205,7 +205,7 @@ func initUsersRouter(r *mux.Router, manager *authManager) {
 	usersRouter.HandleFunc(specificUserPath, handleGetUser).Methods(http.MethodGet)
 	usersRouter.HandleFunc(specificUserPath, handleDelUser).Methods(http.MethodDelete)
 	usersRouter.HandleFunc(specificUserPath, handleUpdateUser).Methods(http.MethodPut)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", usersBasePath)), func (user *users.User, r *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", usersBasePath)), func (user *users.User, r *http.Request) bool {
 		isSelfRequest := user.UserName == r.URL.Path[strings.LastIndex(r.URL.Path, "/") + 1 : ] // if the user is accessing his own user data
 		return isSelfRequest || user.Roles.Contains(users.Secretary) || user.Roles.Contains(users.Admin)
 	})

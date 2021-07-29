@@ -318,7 +318,7 @@ func initMessagesRouter(r *mux.Router, m *authManager) {
 	specificUserPath := fmt.Sprintf("/%s/{%s}", db.Users, userName)
 	router.HandleFunc(specificUserPath, handleGetMessageBoxForUser).Methods(http.MethodGet)
 	router.HandleFunc(specificUserPath, handlePostMessageToUser).Methods(http.MethodPost)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/%s/.", basePath, db.Users)), func (user *users.User, r *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/%s/.", basePath, db.Users)), func (user *users.User, r *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
@@ -330,7 +330,7 @@ func initMessagesRouter(r *mux.Router, m *authManager) {
 	specificAppealPath := fmt.Sprintf("/%s/{%s}/{%s}/{%s}/{%s}", db.Appeals, courseNumber, courseYear, assDefName, userName)
 	router.HandleFunc(specificAppealPath, handleGetMessageBoxForAppeal).Methods(http.MethodGet)
 	router.HandleFunc(specificAppealPath, handlePostMessageToAppeal).Methods(http.MethodPost)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/%s/.", basePath, db.Appeals)), func (user *users.User, r *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/%s/.", basePath, db.Appeals)), func (user *users.User, r *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
@@ -346,7 +346,7 @@ func initMessagesRouter(r *mux.Router, m *authManager) {
 	specificTestPath := fmt.Sprintf(fmt.Sprintf("/%s/{%s}/{%s}/{%s}/{%s}", db.Tests, courseNumber, courseYear, assDefName, testName))
 	router.HandleFunc(specificTestPath, handleGetMessageBoxForTest).Methods(http.MethodGet)
 	router.HandleFunc(specificTestPath, handlePostMessageToTest).Methods(http.MethodPost)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/%s/.", basePath, db.Tests)), func (user *users.User, r *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/%s/.", basePath, db.Tests)), func (user *users.User, r *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

@@ -113,7 +113,7 @@ func initMossRequestRouter(r *mux.Router, m *authManager) {
 		return user.CoursesAsStaff.Contains(fmt.Sprintf("%s:%s", split[0], split[1]))
 	})
 	router.HandleFunc(fmt.Sprintf("/{%s}", taskId), handleGetMossResponse).Methods(http.MethodGet)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", basePath)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", basePath)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

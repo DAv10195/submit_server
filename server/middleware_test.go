@@ -177,14 +177,14 @@ func initTestAuthManager(authManager *authManager){
 		}
 		return false
 	})
-	regex := regexp.MustCompile("/regex/.")
+	regex := regexp.MustCompile("^/regex/.")
 	authManager.addRegex(regex, func(user *users.User, _ *http.Request) bool{
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
 		return false
 	})
-	authManager.addRegex(regexp.MustCompile("/get/."), func(user *users.User, r *http.Request) bool {
+	authManager.addRegex(regexp.MustCompile("^/get/."), func(user *users.User, r *http.Request) bool {
 		return user.Roles.Contains(users.Admin) && r.Method == http.MethodGet
 	})
 }

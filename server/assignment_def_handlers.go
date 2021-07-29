@@ -287,7 +287,7 @@ func initAssDefsRouter(r *mux.Router, manager *authManager) {
 	router.HandleFunc(specificPath, handleDeleteAssignmentDef).Methods(http.MethodDelete)
 	router.HandleFunc(specificPath, handleUpdateAssignmentDef).Methods(http.MethodPut)
 	router.HandleFunc(specificPath, handlePublishAssignmentDef).Methods(http.MethodPatch)
-	manager.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", basePath)), func (user *users.User, request *http.Request) bool {
+	manager.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", basePath)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

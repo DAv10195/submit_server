@@ -201,7 +201,7 @@ func initTestRequestsRouter(r *mux.Router, m *authManager) {
 		return user.CoursesAsStaff.Contains(assDef.Course)
 	})
 	router.HandleFunc(fmt.Sprintf("/{%s}", taskId), handleGetTestResponse).Methods(http.MethodGet)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("%s/.", basePath)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^%s/.", basePath)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}

@@ -512,7 +512,7 @@ func initFilesRouter(r *mux.Router, m *authManager) {
 	router.HandleFunc(specificCoursePath, handleGetFileForCourse).Methods(http.MethodGet)
 	router.HandleFunc(specificCoursePath, handlePostFileForCourse).Methods(http.MethodPost)
 	router.HandleFunc(specificCoursePath, handleDeleteFileForCourse).Methods(http.MethodDelete)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("/files/%s/.", db.Courses)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^/files/%s/.", db.Courses)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) || user.Roles.Contains(users.Secretary) {
 			return true
 		}
@@ -532,7 +532,7 @@ func initFilesRouter(r *mux.Router, m *authManager) {
 	router.HandleFunc(specificAssDefPath, handleGetFileForAssignmentDef).Methods(http.MethodGet)
 	router.HandleFunc(specificAssDefPath, handlePostFileForAssignmentDef).Methods(http.MethodPost)
 	router.HandleFunc(specificAssDefPath, handleDeleteFileForAssignmentDef).Methods(http.MethodDelete)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("/files/%s/.", db.AssignmentDefinitions)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^/files/%s/.", db.AssignmentDefinitions)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
@@ -546,7 +546,7 @@ func initFilesRouter(r *mux.Router, m *authManager) {
 	router.HandleFunc(specificAssInstPath, handleGetFileForAssignmentInst).Methods(http.MethodGet)
 	router.HandleFunc(specificAssInstPath, handlePostFileForAssignmentInst).Methods(http.MethodPost)
 	router.HandleFunc(specificAssInstPath, handleDeleteFileForAssignmentInst).Methods(http.MethodDelete)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("/files/%s/.", db.AssignmentInstances)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^/files/%s/.", db.AssignmentInstances)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
@@ -571,7 +571,7 @@ func initFilesRouter(r *mux.Router, m *authManager) {
 	router.HandleFunc(specificTestPath, handleGetFileForTest).Methods(http.MethodGet)
 	router.HandleFunc(specificTestPath, handlePostFileForTest).Methods(http.MethodPost)
 	router.HandleFunc(specificTestPath, handleDeleteFileForTest).Methods(http.MethodDelete)
-	m.addRegex(regexp.MustCompile(fmt.Sprintf("/files/%s/.", db.Tests)), func (user *users.User, request *http.Request) bool {
+	m.addRegex(regexp.MustCompile(fmt.Sprintf("^/files/%s/.", db.Tests)), func (user *users.User, request *http.Request) bool {
 		if user.Roles.Contains(users.Admin) {
 			return true
 		}
