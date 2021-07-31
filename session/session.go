@@ -21,7 +21,7 @@ const (
 
 	keyLength          			= 32
 	keyFilePerms       			= 0600
-	SubmitMaxCookieAge 			= 5 * 60
+	SubmitMaxCookieAge 			= 10 * 60
 	SubmitSessionUser  			= "submit_session_user"
 
 	authenticatedUser			= "authenticated_user"
