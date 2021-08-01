@@ -20,7 +20,7 @@ import (
 // test a single assignment instance or a definition if only a test is given
 type TestRequest struct {
 	Test					string		`json:"test"`
-	AssignmentInstance		string		`json:"assignment_instances"`
+	AssignmentInstance		string		`json:"assignment_instance"`
 	OnDemand				bool		`json:"on_demand"`
 }
 
