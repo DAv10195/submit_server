@@ -9,6 +9,7 @@ import (
 	"github.com/DAv10195/submit_commons/containers"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/agents"
+	"github.com/DAv10195/submit_server/elements/assignments"
 	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/gorilla/mux"
 	"io/ioutil"
@@ -35,7 +36,21 @@ func (mr *MossRequest) ToTask(asUser string, withDbUpdate bool) (*agents.Task, e
 	if !exists {
 		return nil, &db.ErrKeyNotFoundInBucket{Bucket: db.AssignmentDefinitions, Key: mr.AssignmentDef}
 	}
-	if mr.Users == nil || mr.Users.NumberOfElements() < 2 {
+	if mr.Users == nil || mr.Users.NumberOfElements() == 0 { // if nil users set, then take all users
+		if mr.Users == nil {
+			mr.Users = containers.NewStringSet()
+		}
+		if err := db.QueryBucket([]byte(db.AssignmentInstances), func(_, elemBytes []byte) error {
+			ass :=  &assignments.AssignmentInstance{}
+			if err := json.Unmarshal(elemBytes, ass); err != nil {
+				return err
+			}
+			mr.Users.Add(ass.UserName)
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	} else if  mr.Users.NumberOfElements() < 2 {
 		return nil, errors.New("request must have at least 2 users")
 	}
 	tb := agents.NewTaskBuilder(asUser, withDbUpdate)
