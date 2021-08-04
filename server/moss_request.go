@@ -45,7 +45,9 @@ func (mr *MossRequest) ToTask(asUser string, withDbUpdate bool) (*agents.Task, e
 			if err := json.Unmarshal(elemBytes, ass); err != nil {
 				return err
 			}
-			mr.Users.Add(ass.UserName)
+			if ass.AssignmentDef == mr.AssignmentDef {
+				mr.Users.Add(ass.UserName)
+			}
 			return nil
 		}); err != nil {
 			return nil, err
@@ -55,13 +57,21 @@ func (mr *MossRequest) ToTask(asUser string, withDbUpdate bool) (*agents.Task, e
 	}
 	tb := agents.NewTaskBuilder(asUser, withDbUpdate)
 	for _, username := range mr.Users.Slice() {
-		assInstKey := fmt.Sprintf("%s%s%s", mr.AssignmentDef, db.KeySeparator, username)
-		exists, err := db.KeyExistsInBucket([]byte(db.AssignmentInstances), []byte(assInstKey))
+		assInst, err := assignments.GetInstance(fmt.Sprintf("%s%s%s", mr.AssignmentDef, db.KeySeparator, username))
 		if err != nil {
 			return nil, err
 		}
-		if !exists {
-			return nil, &db.ErrKeyNotFoundInBucket{Bucket: db.AssignmentInstances, Key: assInstKey}
+		if assInst.State != assignments.Graded {
+			return nil, fmt.Errorf("assignemnt def '%s' is not graded yet", string(assInst.Key()))
+		}
+		assDef, err := assignments.GetDef(assInst.AssignmentDef)
+		if err != nil {
+			return nil, err
+		}
+		for _, fileName := range assDef.RequiredFiles.Slice() {
+			if !assInst.Files.Contains(fileName) {
+				continue
+			}
 		}
 		tb.WithDependencies(fmt.Sprintf("/%s/%s/%s", db.Courses, strings.ReplaceAll(mr.AssignmentDef, db.KeySeparator, "/"), username))
 	}

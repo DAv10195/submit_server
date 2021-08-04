@@ -22,11 +22,12 @@ const (
 // assignment definition
 type AssignmentDef struct {
 	db.ABucketElement
-	Name		string					`json:"name"`
-	DueBy		time.Time				`json:"due_by"`
-	Course		string					`json:"course"`
-	State		int						`json:"state"`
-	Files		*containers.StringSet	`json:"files"`
+	Name			string					`json:"name"`
+	DueBy			time.Time				`json:"due_by"`
+	Course			string					`json:"course"`
+	State			int						`json:"state"`
+	Files			*containers.StringSet	`json:"files"`
+	RequiredFiles 	*containers.StringSet	`json:"required_files"`
 }
 
 // get ass def by id
@@ -125,7 +126,7 @@ func NewDef(course string, dueBy time.Time, name string, asUser string, withDbUp
 			return nil, err
 		}
 	}
-	ass := &AssignmentDef{Course: course, DueBy: dueBy, Name: name, State: Draft, Files: containers.NewStringSet()}
+	ass := &AssignmentDef{Course: course, DueBy: dueBy, Name: name, State: Draft, Files: containers.NewStringSet(), RequiredFiles: containers.NewStringSet()}
 	if withDbUpdate {
 		if err := db.Update(asUser, ass); err != nil {
 			return nil, err

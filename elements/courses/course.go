@@ -8,6 +8,7 @@ import (
 	submithttp "github.com/DAv10195/submit_commons/http"
 	"github.com/DAv10195/submit_server/db"
 	"github.com/DAv10195/submit_server/elements/assignments"
+	"github.com/DAv10195/submit_server/elements/users"
 	"github.com/DAv10195/submit_server/fs"
 	"time"
 )
@@ -88,6 +89,27 @@ func Delete(course *Course, withFsUpdate bool) error {
 		if err := fs.GetClient().Delete(fmt.Sprintf("%s/%d/%d", db.Courses, course.Number, course.Year)); err != nil {
 			return err
 		}
+	}
+	var usersToUpdate []db.IBucketElement
+	if err := db.QueryBucket([]byte(db.Users), func (_, elemBytes []byte) error {
+		user := &users.User{}
+		if err := json.Unmarshal(elemBytes, user); err != nil {
+			return err
+		}
+		courseKey := string(course.Key())
+		if user.CoursesAsStaff.Contains(courseKey) {
+			user.CoursesAsStaff.Remove(courseKey)
+			usersToUpdate = append(usersToUpdate, user)
+		} else if user.CoursesAsStudent.Contains(courseKey) {
+			user.CoursesAsStudent.Remove(courseKey)
+			usersToUpdate = append(usersToUpdate, user)
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	if len(usersToUpdate) > 0 {
+		return db.Update(db.System, usersToUpdate...)
 	}
 	return nil
 }

@@ -231,6 +231,17 @@ func handleSubmitAssignmentInst(w http.ResponseWriter, r *http.Request) {
 		writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("assignment instance '%s' can't be submitted anymore", string(assInst.Key())))
 		return
 	}
+	assDef, err := assignments.GetDef(assInst.AssignmentDef)
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	for _, fileName := range assDef.RequiredFiles.Slice() {
+		if !assInst.Files.Contains(fileName) {
+			writeStrErrResp(w, r, http.StatusBadRequest, fmt.Sprintf("assignment instance '%s' can't be submitted because it is missing the %s file", string(assInst.Key()), fileName))
+			return
+		}
+	}
 	assInst.State = assignments.Submitted
 	requestUserName := r.Context().Value(authenticatedUser).(*users.User).UserName
 	if err := db.Update(requestUserName, assInst); err != nil {

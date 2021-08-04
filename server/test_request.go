@@ -116,12 +116,42 @@ func handlePostMultiTestRequest(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if mtr.AssignmentInstances.NumberOfElements() < 1 {
-		writeStrErrResp(w, r, http.StatusBadRequest, "no assignment instances given to test")
-		return
+	if mtr.AssignmentInstances == nil || mtr.AssignmentInstances.NumberOfElements() == 0 {
+		if mtr.AssignmentInstances == nil {
+			mtr.AssignmentInstances = containers.NewStringSet()
+		}
+		test, err := tests.Get(mtr.Test)
+		if err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		if err := db.QueryBucket([]byte(db.AssignmentInstances), func (_, elemBytes []byte) error {
+			ass := &assignments.AssignmentInstance{}
+			if err := json.Unmarshal(elemBytes, ass); err != nil {
+				return err
+			}
+			if ass.AssignmentDef == test.AssignmentDef {
+				mtr.AssignmentInstances.Add(string(ass.Key()))
+			}
+			return nil
+		}); err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
 	}
-
+	var notSubmittedAssInsts []db.IBucketElement
 	for _, assInstKey := range mtr.AssignmentInstances.Slice() {
+		assInst, err := assignments.GetInstance(assInstKey)
+		if err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		if assInst.State == assignments.Assigned {
+			assInst.Grade = 0
+			assInst.State = assignments.Graded
+			notSubmittedAssInsts = append(notSubmittedAssInsts, assInst)
+			continue
+		}
 		tr, err := NewTestRequest(mtr.Test, assInstKey, false)
 		if err != nil {
 			writeErrResp(w, r, http.StatusInternalServerError, err)
@@ -132,7 +162,13 @@ func handlePostMultiTestRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	writeResponse(w, r, http.StatusAccepted, &Response{Message: "tasks created successfully"})
+	if len(notSubmittedAssInsts) > 0 {
+		if err := db.Update(r.Context().Value(authenticatedUser).(*users.User).UserName, notSubmittedAssInsts...); err != nil {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	writeResponse(w, r, http.StatusAccepted, &Response{Message: "assignment is being checked"})
 }
 
 func initTestRequestsRouter(r *mux.Router, m *authManager) {
