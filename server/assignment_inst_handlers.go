@@ -173,7 +173,6 @@ func handleUpdateAssignmentInst(w http.ResponseWriter, r *http.Request) {
 	updatedAss.UserName = preUpdateAss.UserName
 	updatedAss.AssignmentDef = preUpdateAss.AssignmentDef
 	updatedAss.State = preUpdateAss.State
-	updatedAss.MarkedAsCopy = preUpdateAss.MarkedAsCopy
 	updatedAss.CreatedOn = preUpdateAss.CreatedOn
 	updatedAss.CreatedBy = preUpdateAss.CreatedBy
 	cNumber, cYear, err := getCourseNumberAndYearFromRequest(r)
