@@ -117,7 +117,7 @@ func handlePostMessageToUser(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := messages.NewMessage(r.Context().Value(authenticatedUser).(*users.User).UserName, msg.Text, user.MessageBox, true); err != nil {
+	if _, _, err := messages.NewMessage(r.Context().Value(authenticatedUser).(*users.User).UserName, msg.Text, user.MessageBox, true); err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
 			writeErrResp(w, r, http.StatusNotFound, err)
 		} else {
@@ -207,7 +207,7 @@ func handlePostMessageToAppeal(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := messages.NewMessage(r.Context().Value(authenticatedUser).(*users.User).UserName, msg.Text, appeal.MessageBox, true); err != nil {
+	if _, _, err := messages.NewMessage(r.Context().Value(authenticatedUser).(*users.User).UserName, msg.Text, appeal.MessageBox, true); err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
 			writeErrResp(w, r, http.StatusNotFound, err)
 		} else {
@@ -297,7 +297,7 @@ func handlePostMessageToTest(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, err)
 		return
 	}
-	if _, err := messages.NewMessage(r.Context().Value(authenticatedUser).(*users.User).UserName, msg.Text, test.MessageBox, true); err != nil {
+	if _, _, err := messages.NewMessage(r.Context().Value(authenticatedUser).(*users.User).UserName, msg.Text, test.MessageBox, true); err != nil {
 		if _, ok := err.(*db.ErrKeyNotFoundInBucket); ok {
 			writeErrResp(w, r, http.StatusNotFound, err)
 		} else {

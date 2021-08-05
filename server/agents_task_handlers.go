@@ -79,7 +79,7 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 				if !ok {
 					return fmt.Errorf("test task handler: label '%s' has a non string value", onDemandTask)
 				}
-				if _, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test on submit of '%s' assingment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, true); err != nil {
+				if _, _, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test on submit of '%s' assignment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, true); err != nil {
 					return err
 				}
 			}
@@ -120,13 +120,14 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 	if !ok {
 		return fmt.Errorf("test task handler: label '%s' has a non string value", onDemandTask)
 	}
-	msg, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test for testing '%s' assingment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, true)
+	msg, box, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test for testing '%s' assignment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, false)
 	if err != nil {
 		return err
 	}
+	box.Messages.Add(msg.ID)
 	assInst.Grade = tr.Grade
 	assInst.State = assignments.Graded
-	return db.Update(db.System, assInst, msg)
+	return db.Update(db.System, assInst, msg, box)
 }
 
 // handle copy detection execution response
@@ -137,7 +138,7 @@ func handleMossTask(payload []byte, labels map[string]interface{}) error {
 	}
 	threshold := int(labels[mossCopyThreshold].(float64))
 	assignment := labels[assDefName].(string)
-	var assignmentsToMarkAsCopy []db.IBucketElement
+	var elementsToUpdate []db.IBucketElement
 	for _, mop := range mo.Pairs {
 		if mop.Percentage1 >= threshold || mop.Percentage2 >= threshold {
 			ass1, err := assignments.GetInstance(fmt.Sprintf("%s%s%s", assignment, db.KeySeparator, mop.Name1))
@@ -148,12 +149,30 @@ func handleMossTask(payload []byte, labels map[string]interface{}) error {
 			if err != nil {
 				return err
 			}
+			user1, err := users.Get(ass1.UserName)
+			if err != nil {
+				return err
+			}
+			user2, err := users.Get(ass2.UserName)
+			if err != nil {
+				return err
+			}
 			ass1.MarkedAsCopy = true
+			msg1, box1, err := messages.NewMessage(db.System, fmt.Sprintf("assignment '%s' marked as copy", ass1.AssignmentDef), user1.MessageBox, false)
+			if err != nil {
+				return err
+			}
+			box1.Messages.Add(msg1.ID)
 			ass2.MarkedAsCopy = true
-			assignmentsToMarkAsCopy = append(assignmentsToMarkAsCopy, ass1, ass2)
+			msg2, box2, err := messages.NewMessage(db.System, fmt.Sprintf("assignment '%s' marked as copy", ass2.AssignmentDef), user2.MessageBox, false)
+			if err != nil {
+				return err
+			}
+			box2.Messages.Add(msg2.ID)
+			elementsToUpdate = append(elementsToUpdate, ass1, ass2, msg1, msg2, box1, box2)
 		}
 	}
-	return db.Update(db.System, assignmentsToMarkAsCopy...)
+	return db.Update(db.System, elementsToUpdate...)
 }
 
 func init() {
