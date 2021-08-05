@@ -59,6 +59,46 @@ func handleGetAgent(w http.ResponseWriter, r *http.Request) {
 	writeElem(w, r, http.StatusOK, requestedAgent)
 }
 
+func handleGetTasksForAgent(forAgent string, w http.ResponseWriter, r *http.Request, params *submithttp.PagingParams) {
+	exists, err := db.KeyExistsInBucket([]byte(db.Agents), []byte(forAgent))
+	if err != nil {
+		writeErrResp(w, r, http.StatusInternalServerError, err)
+		return
+	}
+	if !exists {
+		writeErrResp(w, r, http.StatusNotFound, &db.ErrKeyNotFoundInBucket{Key: forAgent, Bucket: db.Agents})
+		return
+	}
+	var elementsCount, elementsIndex int64
+	var elements []db.IBucketElement
+	if err := db.QueryBucket([]byte(db.Tasks), func(_, elementBytes []byte) error {
+		task := &agents.Task{}
+		if err := json.Unmarshal(elementBytes, task); err != nil {
+			return err
+		}
+		if task.Agent == forAgent {
+			elementsIndex++
+			if elementsIndex <= params.AfterId {
+				return nil
+			}
+			elements = append(elements, task)
+			elementsCount++
+			if elementsCount == params.Limit {
+				return &db.ErrStopQuery{}
+			}
+		}
+		return nil
+	}); err != nil {
+		if _, ok := err.(*db.ErrElementsLeftToProcess); ok {
+			w.Header().Set(submithttp.ElementsLeftToProcess, trueStr)
+		} else {
+			writeErrResp(w, r, http.StatusInternalServerError, err)
+			return
+		}
+	}
+	writeElements(w, r, http.StatusOK, elements)
+}
+
 func handleGetTasks(w http.ResponseWriter, r *http.Request) {
 	params, err := submithttp.PagingParamsFromRequest(r)
 	if err != nil {

@@ -79,7 +79,7 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 				if !ok {
 					return fmt.Errorf("test task handler: label '%s' has a non string value", onDemandTask)
 				}
-				if _, _, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test on submit of '%s' assignment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, true); err != nil {
+				if _, _, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test on submit/demand of '%s' assignment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, true); err != nil {
 					return err
 				}
 			}
