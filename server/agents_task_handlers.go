@@ -108,9 +108,25 @@ func handleTestTask(payload []byte, labels map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
+	assUser, err := users.Get(assUsername)
+	if err != nil {
+		return err
+	}
+	tn, ok := labels[testName]
+	if !ok {
+		return fmt.Errorf("test task handler: missing label '%s' in task labels", onDemandTask)
+	}
+	execTestName, ok := tn.(string)
+	if !ok {
+		return fmt.Errorf("test task handler: label '%s' has a non string value", onDemandTask)
+	}
+	msg, err := messages.NewMessage(db.System, fmt.Sprintf("execution of '%s' test for testing '%s' assingment: grade: %d, output: '%s'", execTestName, assDefinitionName, tr.Grade, tr.Output), assUser.MessageBox, true)
+	if err != nil {
+		return err
+	}
 	assInst.Grade = tr.Grade
 	assInst.State = assignments.Graded
-	return db.Update(db.System, assInst)
+	return db.Update(db.System, assInst, msg)
 }
 
 // handle copy detection execution response
