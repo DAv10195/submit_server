@@ -2,7 +2,7 @@ package cmd
 
 const (
 	submit					= "submit"
-	submitServer 			= "submit server"
+	submitServer 			= "submit_server"
 	start					= "start"
 
 	defaultConfigFileName	= "submit_server.yml"
