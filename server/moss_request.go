@@ -75,11 +75,11 @@ func (mr *MossRequest) ToTask(asUser string, withDbUpdate bool) (*agents.Task, e
 		}
 		tb.WithDependencies(fmt.Sprintf("/%s/%s/%s", db.Courses, strings.ReplaceAll(mr.AssignmentDef, db.KeySeparator, "/"), username))
 	}
-	if mr.Sensitivity < 1 || mr.Sensitivity > 1000 {
-		return nil, errors.New("request sensitivity must be >= 1 ^ <= 1000")
+	if mr.Sensitivity < 1  {
+		return nil, errors.New("request sensitivity must be >= 1")
 	}
 	if mr.Threshold < 1 || mr.Threshold > 100 {
-		return nil, errors.New("request sensitivity must be >= 1 ^ <= 100")
+		return nil, errors.New("request similarity percentage threshold must be >= 1 ^ <= 100")
 	}
 	sb := &strings.Builder{}
 	sb.WriteString(fmt.Sprintf("%s -l %s -m %d -d", commons.MossPathPlaceHolder, mr.Language, mr.Sensitivity))
