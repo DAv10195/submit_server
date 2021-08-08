@@ -105,6 +105,11 @@ func handleGetTasks(w http.ResponseWriter, r *http.Request) {
 		writeErrResp(w, r, http.StatusBadRequest, fmt.Errorf("error parsing query params: %v", err))
 		return
 	}
+	forAgent := r.Header.Get(submithttp.SubmitAgent)
+	if forAgent != "" {
+		handleGetTasksForAgent(forAgent, w, r, params)
+		return
+	}
 	var elementsCount, elementsIndex int64
 	var elements []db.IBucketElement
 	if err := db.QueryBucket([]byte(db.Tasks), func(_, elementBytes []byte) error {
